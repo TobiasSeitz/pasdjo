@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pasdjo Data</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<script>
+  var req = new XMLHttpRequest();
+  req.open('GET', 'data/password-game-export.json');
+  req.onload = function() {
+    var data = JSON.parse(req.responseText).games;
+    var numGames;
+    var knownTestIDs = [
+      'uUcpou1wUBS5E9DVd556oO3dvAT2',
+      'n68UIcbuD7amarUJYa73urhEmoL2',
+      'jdPKqRRyulcUYgqO3lsM4cR7q6G2',
+      'KJQBBl9Hy1aD845drE6r9EFoUFX2'
+    ];
+    knownTestIDs.forEach(function(uid) {
+      delete data[uid];
+    });
+    numGames = Object.keys(data).map(function(uid) {
+      return Object.keys(data[uid]).length;
+    });
+    console.log(numGames);
+  };
+  req.send();
+
+</script>
+</body>
+</html>
