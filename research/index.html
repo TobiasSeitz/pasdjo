@@ -4,30 +4,80 @@
   <meta charset="UTF-8">
   <title>Pasdjo Data</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    #output {
+      white-space: pre;
+      font-family: monospace;
+    }
+
+  </style>
 </head>
 <body>
 <script>
-  var req = new XMLHttpRequest();
-  req.open('GET', 'data/password-game-export.json');
-  req.onload = function() {
-    var data = JSON.parse(req.responseText).games;
-    var numGames;
-    var knownTestIDs = [
-      'uUcpou1wUBS5E9DVd556oO3dvAT2',
-      'n68UIcbuD7amarUJYa73urhEmoL2',
-      'jdPKqRRyulcUYgqO3lsM4cR7q6G2',
-      'KJQBBl9Hy1aD845drE6r9EFoUFX2'
-    ];
-    knownTestIDs.forEach(function(uid) {
-      delete data[uid];
-    });
-    numGames = Object.keys(data).map(function(uid) {
-      return Object.keys(data[uid]).length;
-    });
-    console.log(numGames);
-  };
-  req.send();
+
+  (function(){
+    function Analyzer() {
+      function showOutput(data, replace) {
+        var outputDiv = document.getElementById('output');
+        var content = typeof data === 'object' ? JSON.stringify(data,null,2) : data.toString();
+        var newDiv;
+        if (replace) {
+          outputDiv.innerHTML = content
+        } else {
+          newDiv = document.createElement('div');
+          newDiv.setAttribute('data-timestamp', Date.now());
+          newDiv.innerHTML = content;
+          outputDiv.appendChild(newDiv);
+        }
+      }
+
+      function loadData(callback) {
+        var req = new XMLHttpRequest();
+        req.open('GET', 'data/password-game-export.json');
+        req.onload = function() {
+          var data = JSON.parse(req.responseText).games;
+          var gamesPerUser;
+
+          // these are test accounts that are identified by their email address in the firebase auth console.
+          var knownTestIDs = [
+            'uUcpou1wUBS5E9DVd556oO3dvAT2',
+            'n68UIcbuD7amarUJYa73urhEmoL2',
+            'jdPKqRRyulcUYgqO3lsM4cR7q6G2',
+            'KJQBBl9Hy1aD845drE6r9EFoUFX2'
+          ];
+          knownTestIDs.forEach(function(uid) {
+            delete data[uid];
+          });
+          gamesPerUser = Object.keys(data).map(function(uid) {
+            return Object.keys(data[uid]).length;
+          });
+
+          showOutput('Number of users: ' + gamesPerUser.length);
+          showOutput(gamesPerUser.join('\n'));
+
+          callback(data);
+        };
+        req.send();
+      }
+
+      this.analyze = function() {
+        loadData(function() {
+          showOutput('Data loaded')
+        });
+      }
+
+    }
+
+    var analyzer = new Analyzer();
+    analyzer.analyze();
+
+  })();
+
 
 </script>
+
+<div id="output">
+
+</div>
 </body>
 </html>
