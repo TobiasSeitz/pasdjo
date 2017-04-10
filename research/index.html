@@ -15,11 +15,15 @@
 <body>
 <script>
 
-  (function(){
+  (function() {
     function Analyzer() {
+      this.data = {};
+
+
+      // helper method to show the output of
       function showOutput(data, replace) {
         var outputDiv = document.getElementById('output');
-        var content = typeof data === 'object' ? JSON.stringify(data,null,2) : data.toString();
+        var content = typeof data === 'object' ? JSON.stringify(data, null, 2) : data.toString();
         var newDiv;
         if (replace) {
           outputDiv.innerHTML = content
@@ -31,14 +35,98 @@
         }
       }
 
+      /**
+       * @param anything
+       * @returns anything in "string quotes"
+       */
+      function inQuote(anything) {
+        return '"' + anything + '"';
+      }
+
+      String.prototype.inQuote = function() {
+        return inQuote(this);
+      };
+
+      Number.prototype.inQuote = function() {
+        return inQuote(this);
+      };
+
+      function toCSV(users) {
+        // we have the following data structure
+        // games Obj
+        //    userID Obj
+        //        gameID Obj
+        //          rounds Array of Obj
+        //          score Obj (achieved, percent, total)
+
+        var gameCSV = '';
+        gameCSV += [
+            'id'.inQuote(),
+            'user'.inQuote(),
+            'userID'.inQuote(),
+            'game'.inQuote(),
+            'gameIndex'.inQuote(),
+            'achieved'.inQuote(),
+            'percent'.inQuote(),
+            'total'.inQuote()].join(',') + '\n';
+
+        var gameRowID = 0;
+        var userID = 0;
+        var pwRowID = 0;
+
+
+        for (var user in users) {
+          var userObj = users[user];
+          var userGames = 0;
+          userID++;
+          for (var game in userObj) {
+            userGames++;
+            var gameObj = userObj[game];
+            var score = gameObj.score;
+
+            gameCSV += [
+                (gameRowID++).inQuote(),
+                user.inQuote(),
+                userID.inQuote(),
+                game.inQuote(),
+                userGames.inQuote(),
+                score.achieved.inQuote(),
+                score.percent.inQuote(),
+                score.total.inQuote()
+              ].join(',') + '\n';
+
+
+            /*game.rounds.forEach(function(round) {
+
+             })*/
+          }
+        }
+
+        showOutput(gameCSV);
+
+      }
+
+      function kpi(data) {
+        var gamesPerUser;
+
+        // these are test accounts that are identified by their email address in the firebase auth console.
+
+        gamesPerUser = Object.keys(data).map(function(uid) {
+          return Object.keys(data[uid]).length;
+        });
+
+        showOutput('Number of users: ' + gamesPerUser.length);
+        showOutput(gamesPerUser.join('\n'));
+      }
+
+
       function loadData(callback) {
+        var self = this;
         var req = new XMLHttpRequest();
         req.open('GET', 'data/password-game-export.json');
         req.onload = function() {
           var data = JSON.parse(req.responseText).games;
-          var gamesPerUser;
 
-          // these are test accounts that are identified by their email address in the firebase auth console.
           var knownTestIDs = [
             'uUcpou1wUBS5E9DVd556oO3dvAT2',
             'n68UIcbuD7amarUJYa73urhEmoL2',
@@ -48,12 +136,8 @@
           knownTestIDs.forEach(function(uid) {
             delete data[uid];
           });
-          gamesPerUser = Object.keys(data).map(function(uid) {
-            return Object.keys(data[uid]).length;
-          });
 
-          showOutput('Number of users: ' + gamesPerUser.length);
-          showOutput(gamesPerUser.join('\n'));
+          self.data = data;
 
           callback(data);
         };
@@ -61,14 +145,16 @@
       }
 
       this.analyze = function() {
-        loadData(function() {
-          showOutput('Data loaded')
+        loadData(function(users) {
+          showOutput('Data loaded');
+          toCSV(users);
         });
       }
 
+
     }
 
-    var analyzer = new Analyzer();
+    window.analyzer = new Analyzer();
     analyzer.analyze();
 
   })();

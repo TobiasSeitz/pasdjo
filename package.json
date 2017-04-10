@@ -1,0 +1,19 @@
+{
+  "name": "pasdjo",
+  "version": "1.0.0",
+  "description": "A game about passwords",
+  "main": "index.js",
+  "scripts": {
+    "test": "-"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TobiasSeitz/pasdjo.git"
+  },
+  "author": "Tobias Seitz <tobi@tobitobi.de>",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/TobiasSeitz/pasdjo/issues"
+  },
+  "homepage": "https://github.com/TobiasSeitz/pasdjo#readme"
+}
