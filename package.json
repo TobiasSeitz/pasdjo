@@ -4,7 +4,7 @@
   "description": "A game about passwords",
   "main": "index.js",
   "scripts": {
-    "test": "-"
+    "makecsv": "node ./research/make-csv-from-json.js"
   },
   "repository": {
     "type": "git",
