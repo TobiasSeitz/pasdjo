@@ -1,0 +1,20 @@
+{
+  "entrypoint": "index.html",
+  "shell": "src/game-app.html",
+  "fragments": [
+    "src/views/game-view.html",
+    "src/views/about-view.html",
+    "src/views/highscore-view.html",
+    "src/views/personality-view.html",
+    "src/my-view404.html"
+  ],
+  "sourceGlobs": [
+   "src/**/*",
+   "images/**/*",
+   "bower.json"
+  ],
+  "includeDependencies": [
+    "manifest.json",
+    "bower_components/webcomponentsjs/webcomponents-lite.min.js"
+  ]
+}

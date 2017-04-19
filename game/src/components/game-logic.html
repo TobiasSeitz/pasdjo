@@ -1,0 +1,166 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<dom-module id="game-logic">
+  <template>
+    <count-down duration="[[duration]]"
+                id="countDown"
+                on-time-out="_handleTimeout"></count-down>
+    <polymer-zxcvbn
+        password="[[currentPassword]]"
+        full-result="{{zxcvbnResult}}"></polymer-zxcvbn>
+    <passwords-service id="pwService"></passwords-service>
+
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'game-logic',
+        properties: {
+          running: {
+            type: Boolean,
+            value: false,
+            notify: true
+          },
+          /**
+           * indicates whether the game has ended at least once
+           */
+          gameOver: {
+            type: Boolean,
+            value: false,
+            notify: true
+          },
+          passwords: {
+            type: Array,
+            value: function() {
+              return [];
+            },
+            notify: true
+          },
+          currentPassword: {
+            type: String,
+            notify: true
+          },
+          duration: {
+            type: Number,
+            value: 60 * 1000
+          },
+          score: {
+            type: Object,
+            value: function() {
+              return {
+                total: 0,
+                achieved: 0,
+                percent: 0
+              }
+            },
+            notify: true
+          },
+          analysis: {}
+        },
+        observers: [
+          '_calculateScore(passwords.splices)'
+        ],
+        ready: function() {
+          this.config = {
+            maxRounds: 40,
+            conditions: [
+              'common',
+              'mangled',
+              'passphrase',
+              'random'
+            ]
+          };
+          this.condition = 'common_passwords';
+        },
+        start: function() {
+          if (!this.running) {
+            this.rounds = 0; // how many rounds did the user play?
+            this.running = true;
+            this.gameOver = false;
+            this.set('passwords',[]);
+            this.set('score',{
+              total: 0,
+              achieved: 0,
+              percent: 0
+            });
+            this.$.countDown.start();
+            this.next();
+          }
+        },
+        next: function() {
+          if (this.rounds < this.config.maxRounds) {
+            // get a random condition:
+            this.condition = this.config.conditions[Math.floor(Math.random() * this.config.conditions.length)];
+            if (this.condition === 'common') {
+              this.currentPassword = this.$.pwService.common();
+            } else if (this.condition === 'mangled') {
+              this.currentPassword = this.$.pwService.mangled();
+            } else if (this.condition === 'passphrase') {
+              this.currentPassword = this.$.pwService.passphrase(2);
+            } else { // default condition: random
+              this.currentPassword = this.$.pwService.random();
+            }
+            this.rounds++;
+          } else {
+            this.end();
+          }
+        },
+        rate: function(rating) {
+          // only commit the rating if the game is actually running.
+          if (this.running && typeof rating === 'number') {
+            this._commit(rating, this.zxcvbnResult);
+            this.next();
+          }
+        },
+        end: function() {
+          this.running = false;
+          this.gameOver = true;
+          this.$.countDown.stop();
+          this.fire('game-over', this.passwords);
+        },
+        _calculateScore: function() {
+          if (!this.passwords || this.passwords.length === 0) return;
+          var correctPoints = 100;
+          var errorPenalty = 25; // how much is deducted for a miss?
+          var total = 0, achieved = 0, percent;
+          this.passwords.forEach(function(round) {
+            total += correctPoints;
+            achieved += correctPoints - (Math.abs(round.tendency) * errorPenalty);
+          });
+          percent = total > 0 ? achieved / total : 0;
+          percent = Math.ceil(percent * 100);
+          this.score = {
+            total: total,
+            achieved: achieved,
+            percent: percent
+          }
+        },
+        _handleTimeout: function(e) {
+          e.stopPropagation(); // why is this necessary?
+          this.end();
+        },
+        _commit: function(rating, analysis) {
+          var analysisCopy = {
+            user_rating: rating
+          };
+          for (var key in analysis) {
+            if (analysis.hasOwnProperty(key)) {
+              analysisCopy[key] = analysis[key];
+            }
+          }
+          analysisCopy.score++; // 1-5 instead of 0-4;
+          analysisCopy.tendency = analysisCopy.user_rating - analysisCopy.score;
+          analysisCopy.condition = this.condition;
+          analysisCopy.warning = analysis.feedback.warning;
+          analysisCopy.timestamp = Date.now();
+          delete analysisCopy.feedback;
+          delete analysisCopy.sequence;
+          delete analysisCopy.calc_time;
+          delete analysisCopy.crack_times_display;
+          delete analysisCopy.crack_times_seconds;
+          this.push('passwords', analysisCopy);
+        }
+      });
+    })();
+  </script>
+</dom-module>

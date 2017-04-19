@@ -1,0 +1,337 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+<link rel="import" href="../shared-styles.html">
+<link rel="import" href="../behaviors/format-behavior.html">
+<link rel="import" href="../behaviors/toaster-behavior.html">
+
+
+<dom-module id="game-view">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+        --paper-light-green-700: #689f38;
+        --paper-green-800: #2e7d32;
+        --paper-yellow-900: #f57f17;
+        --paper-orange-900: #e65100;
+        --paper-red-a400: #ff1744;
+        --paper-pink-800: #ad1457;
+      }
+
+      ul {
+        padding-left: 16px;
+      }
+
+      .zxcvbnFullResult {
+        white-space: pre;
+        font-family: 'Menlo', 'Consolas', monospace;
+        font-size: 8px;
+      }
+
+      .currentPw {
+        margin: auto;
+        display: block;
+        text-align: center;
+        font-size: 28px;
+        padding: 16px;
+        color: var(--app-primary-color);
+        font-weight: bold;
+      }
+
+      flip-clock {
+        text-align: center;
+        --digit-size: 40px;
+        --digit-bg-color: var(--app-primary-color);
+        --digit-divider-color: var(--app-dark-primary-color);
+        --digit-box-shadow: none;
+        --clock-digit: {
+          margin-right: 2px;
+        };
+        --divider-bar: {
+          display: none;
+        }
+      }
+
+
+
+
+
+      paper-button {
+        background-color: var(--app-accent-color);
+        color: var(--app-light-text-color);
+      }
+      paper-toast {
+        --paper-toast-color: var(--app-light-primary-color);
+      }
+
+      star-rating {
+        width: 100%;
+      }
+
+      star-rating[fixed] {
+        max-width: 250px;
+      }
+
+      star-rating[fixed].tendency-0 {
+        --star-rating-icon-button: {
+          color: var(--paper-green-800);
+        }
+      }
+
+      star-rating[fixed].tendency-1 {
+        --star-rating-icon-button: {
+          color: var(--paper-light-green-700);
+        }
+      }
+
+      star-rating[fixed].tendency-2 {
+        --star-rating-icon-button: {
+          color: var(--paper-yellow-900);
+        }
+      }
+
+      star-rating[fixed].tendency-3 {
+        --star-rating-icon-button: {
+          color: var(--paper-orange-900);
+        }
+      }
+
+      star-rating[fixed].tendency-4 {
+        --star-rating-icon-button: {
+          color: var(--paper-red-a400);
+        }
+      }
+
+      .scores .row {
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        width: 100%;
+        max-width: 800px;
+        margin: 24px 0;
+      }
+
+      .scores .row > .flexContainer {
+        flex: 1;
+        display: flex;
+        justify-items: center;
+        flex-wrap: wrap;
+        max-width: 100%;
+      }
+
+      .scores .row .password {
+        min-width: 140px;
+        margin-right: 24px;
+        font-weight: bold;
+        flex-grow: 0;
+        flex-shrink: 1;
+        /*flex-basis: 100%;*/
+        color: var(--app-primary-color);
+      }
+
+      .scores .row > .passwordContainer {
+        display: flex;
+      }
+
+      .flexContainer > span {
+        text-align: left;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+
+      .flexContainer span:not(:last-of-type) {
+
+      }
+
+      .flexContainer span.flexLabel {
+        min-width: 90px;
+      }
+
+
+      /* smart phones */
+      @media(max-width: 420px) {
+        flip-clock {
+          --digit-size: 20px;
+        }
+
+        .scores .row {
+          display: block;
+          flex: 0;
+        }
+        .scores .row .password {
+          min-width: 0;
+          margin-right: 10px;
+          flex:0;
+          display: block;
+        }
+        .scores .row > .flexContainer {
+          flex: 0;
+          display: block;
+          max-width: 100%;
+        }
+      }
+    </style>
+    <paper-toast id="toast" duration="3000"></paper-toast>
+
+    <div class="card">
+      <!-- INSTRUCTIONS -->
+      <div class="instructions" hidden$="[[_showOnce(running,gameOver)]]">
+        <h2 hidden$="[[!user]]">[[ localize('welcome_back') ]]<span
+            hidden$="[[!user.displayName]]">, [[user.displayName]]</span>!</h2>
+        <h2>[[ localize('lets_play') ]]</h2>
+        <h3>[[ localize('heres_how_it_works') ]]:</h3>
+        <ul>
+          <li>[[ localize('you_will_rate_the_strength') ]]</li>
+          <li>
+            [[ localize('instruction_pt1') ]]<br />
+            [[ localize('instruction_pt2') ]]
+            <star-rating keys-enabled="[[ !running ]]"></star-rating>
+          </li>
+          <li>[[ localize('instruction_pt3') ]]</li>
+        </ul>
+        <p>[[ localize('ready_lets_go') ]]</p>
+      </div>
+
+      <!-- MAIN - GAME -->
+      <div class="main" hidden$="[[!running]]">
+
+        <flip-clock id="flipClock" display-mode="countdown" start-from="1" hide-hours></flip-clock>
+        <p class="instruction">[[ localize('please_rate_this_pw') ]]:</p>
+        <div class="currentPw">[[currentPw]]</div>
+
+        <star-rating id="rating"
+                     rating="0"
+                     max="5"
+                     on-user-tap="_handleRating"
+                     keys-enabled="[[ running ]]"
+        ></star-rating>
+
+        <game-logic id="logic"
+                    running="{{running}}"
+                    game-over="{{gameOver}}"
+                    current-password="{{currentPw}}"
+                    on-game-over="_handleGameOver"
+                    passwords="{{rounds}}"
+                    score="{{score}}"
+        ></game-logic>
+
+      </div>
+
+      <paper-button on-tap="_startGame" id="startButton" hidden$="[[_showOnce(running,gameOver)]]">
+        <iron-icon icon="av:play-circle-outline"></iron-icon>
+        [[ localize('start') ]]
+      </paper-button>
+
+      <!-- GAME OVER - SCORES -->
+      <div class="scores" hidden$="[[!gameOver]]">
+        <div>
+          <h2>[[ localize('nice') ]]!</h2>
+
+          <h2>[[ localize('your_score') ]]:
+            <span>[[score.achieved]]</span> /
+            <span>[[score.total]]</span>
+            (<span>[[score.percent]]%</span>)
+          </h2>
+
+        </div>
+
+        <p>
+          [[ localize('game_history') ]]:
+        </p>
+        <template is="dom-repeat" items="[[rounds]]" as="round" sort="_byTimestamp">
+          <div class="row">
+            <span class="passwordContainer">
+              <span class="password">[[round.password]]</span>
+            </span>
+            <div class="flexContainer">
+            <span><span class="flexLabel">[[ localize('analysis') ]]:</span>
+              <star-rating rating="[[round.score]]"
+                           fixed
+              ></star-rating>
+            </span>
+
+              <span><span class="flexLabel">[[ localize('your_rating') ]]:</span>
+            <star-rating rating="[[round.user_rating]]"
+                         fixed
+                         class$="[[_getRatingClass(round.tendency)]]"></star-rating>
+            </span>
+            </div>
+          </div>
+        </template>
+
+        <div>
+          <paper-button on-tap="_startGame" id="restartButton" hidden="[[running]]">
+            <iron-icon icon="pw-game:refresh"></iron-icon>
+            [[ localize('restart') ]]
+          </paper-button>
+        </div>
+      </div>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'game-view',
+      properties: {
+        user: {
+          type: Object
+        },
+        language: {
+          type: String,
+          value: 'de'
+        },
+        a11yTarget: {
+          type: Object
+        }
+      },
+      behaviors: [
+        Polymer.AppLocalizeBehavior,
+        GameBehaviors.FormatBehavior,
+        GameBehaviors.ToasterBehavior
+      ],
+      attached: function() {
+        this.loadResources(this.resolveUrl('../data/locales.json'));
+      },
+      _startGame: function() {
+        this.$.logic.start();
+        this.$.flipClock._resetCount();
+        this.$.flipClock._startCount();
+
+        // to log the user's statistics, we request an anonymous sign in
+        // if they decide to log in later, they do not lose their
+        // game history from before.
+        if(!this.user) {
+          this.fire('request-anonymous-signin');
+        }
+      },
+      _handleRating: function(e) {
+        e.stopPropagation();
+
+        this.$.logic.rate(e.detail);
+        this.$.rating.reset();
+      },
+      _handleGameOver: function() {
+        this.$.flipClock._stopCount();
+        this._showToast(this.localize('game_over_toast'));
+        this.fire('commit',{
+          score: this.$.logic.score,
+          rounds: this.$.logic.passwords
+        });
+      },
+      _byTimestamp: function(roundA, roundB) {
+        if (roundA && roundB && roundA.timestamp && roundB.timestamp) {
+          return roundB.timestamp - roundA.timestamp;
+        }
+        return 1;
+      },
+      _getRatingClass: function(tendency) {
+        return 'tendency-' + Math.abs(tendency);
+      },
+      _showOnce: function(running, gameOver) {
+        return running || gameOver;
+      }
+    });
+  </script>
+</dom-module>

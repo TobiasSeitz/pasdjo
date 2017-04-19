@@ -1,0 +1,104 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+<link rel="import" href="../shared-styles.html">
+<link rel="import" href="../behaviors/format-behavior.html">
+
+<dom-module id="highscore-view">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+      }
+
+      .row {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        margin: 16px 0;
+      }
+      .row > * {
+        flex: 1;
+      }
+      .row .score {
+        font-weight: bold;
+      }
+
+
+    </style>
+    <div class="card">
+      <h2>[[ localize('highscores') ]]</h2>
+      <div class="scores">
+        <template is="dom-repeat" items="[[games]]" as="game" initial-count="10">
+          <div class="row">
+            <div>
+              <span>[[ localize('play_datetime') ]]:</span>
+              <span>[[_fetchFinalDate(game)]]</span>
+            </div>
+            <div class="score">
+              <span>[[ localize('score') ]]: </span>
+              <span class="achieved">[[game.score.achieved]]</span> /
+              <span class="total">[[game.score.total]]</span>
+              (<span class="percent">[[game.score.percent]]%</span>)
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+    <!--<div class="card" hidden$=[[_highScoresAvailable(games)]]"></div>-->
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'highscore-view',
+        behaviors: [
+          Polymer.AppLocalizeBehavior,
+          GameBehaviors.FormatBehavior
+        ],
+        properties: {
+          games: {
+            type: Object,
+            observer: '_gamesChanged'
+          },
+          language: {
+            type: String,
+            value: 'de'
+          }
+        },
+
+        _isHighScoresHidden: function(games) {
+          return !games || games.length === 0;
+        },
+        _highScoresAvailable: function(games){
+          // this is a bit stupid, but computed bindings work that way.
+          return !this._isHighScoresHidden(games);
+        },
+        attached: function() {
+          this.loadResources(this.resolveUrl('../data/locales.json'));
+        },
+        ready: function() {
+        },
+        _gamesChanged: function(games) {
+          this.games = games;
+        },
+        _fetchFinalDate: function(game) {
+          var lastTimestamp;
+          var lastGame;
+          var playDate; // sorry for the pun.
+          var niceDate;
+
+          if(game && game.rounds && game.rounds.length > 0) {
+            lastGame = game.rounds[game.rounds.length - 1];
+            if (lastGame && lastGame.timestamp && typeof lastGame.timestamp == 'number') {
+              lastTimestamp = lastGame.timestamp;
+              playDate = new Date(lastTimestamp);
+              niceDate = this._niceDate(playDate);
+              return niceDate;
+            }
+          }
+        }
+      });
+    })();
+  </script>
+</dom-module>

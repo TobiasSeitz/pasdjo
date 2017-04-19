@@ -1,0 +1,12 @@
+<script>
+  window.GameBehaviors = window.GameBehaviors || {};
+  GameBehaviors.ToasterBehavior = {
+    _showToast: function(message, duration) {
+      if (this.$.toast) {
+        this.$.toast.duration = duration ? duration : this.$.toast.duration;
+        this.$.toast.text = message;
+        this.$.toast.show();
+      }
+    }
+  }
+</script>
