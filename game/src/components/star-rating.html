@@ -1,6 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-a11y-keys-behavior/iron-a11y-keys-behavior.html">
-
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 
 <dom-module id="star-rating">
   <template>
@@ -8,21 +8,21 @@
       :host {
         width: 100%;
         display: flex;
-        @apply(--star-rating);
+        @apply --star-rating;
       }
 
       :host[fixed] {
 
         --paper-icon-button-disabled: {
           padding: 0;
-          @apply(--star-rating-icon-button);
+          @apply --star-rating-icon-button;
         }
       }
 
       paper-icon-button {
         flex: 1;
         height: 60px;
-        @apply(--star-rating-icon-button);
+        @apply --star-rating-icon-button;
       }
 
       iron-icon:hover {

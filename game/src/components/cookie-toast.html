@@ -1,16 +1,33 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../shared-styles.html">
 
 <dom-module id="cookie-toast">
   <template>
     <style include="shared-styles"></style>
     <style>
+      paper-toast .content{
+        @apply --layout-horizontal;
+        @apply --layout-center;
+      }
       paper-toast div.left{
         font-size: small;
+        @apply --layout-flex;
+      }
+      
+      paper-toast div.right{
+        @apply --layout-vertical;
+        justify-content: center;
+        padding-left: 8px;
       }
       paper-toast paper-button{
-        float: right;
-        background-color: var(--accent-color);
+        background-color:  var(--app-accent-color);
+      }
+      
+      paper-toast a:link, paper-toast a:visited {
+        color: var(--app-accent-color);
       }
     </style>
     <paper-toast id="cookieToast" duration="0">

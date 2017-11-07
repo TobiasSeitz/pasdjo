@@ -5,16 +5,43 @@
     "src/views/game-view.html",
     "src/views/about-view.html",
     "src/views/highscore-view.html",
-    "src/views/personality-view.html",
-    "src/my-view404.html"
+    "src/views/leaderboard-view.html",
+    "src/views/game-view404.html"
   ],
-  "sourceGlobs": [
-   "src/**/*",
-   "images/**/*",
-   "bower.json"
+  "sources": [
+    "src/**/*",
+    "images/**/*",
+    "bower.json"
   ],
-  "includeDependencies": [
+  "extraDependencies": [
     "manifest.json",
-    "bower_components/webcomponentsjs/webcomponents-lite.min.js"
-  ]
+    "bower_components/webcomponentsjs/webcomponents-lite.min.js",
+    "bower_components/intl-messageformat/dist/intl-messageformat.min.js"
+  ],
+  "builds": [
+    {
+      "name": "unbundled",
+      "addServiceWorker": true,
+      "swPrecacheConfig":"sw-precache-config.js",
+      "addPushManifest": true,
+      "js": {"minify": true, "compile": true},
+      "css": {"minify": true},
+      "html": {"minify": true}
+    },
+    {
+      "name": "bundled",
+      "bundle": true,
+      "addServiceWorker": true,
+      "swPrecacheConfig":"sw-precache-config.js",
+      "addPushManifest": true,
+      "js": {"minify": true, "compile": true},
+      "css": {"minify": true},
+      "html": {"minify": true}
+    }
+  ],
+  "lint": {
+    "rules": [
+      "polymer-2-hybrid"
+    ]
+  }
 }

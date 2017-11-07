@@ -8,6 +8,7 @@
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
 module.exports = {
+  version: 20,
   staticFileGlobs: [
     '/index.html',
     '/src/**/*',

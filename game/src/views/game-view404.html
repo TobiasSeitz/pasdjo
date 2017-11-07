@@ -8,9 +8,9 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymer/polymer.html">
 
-<dom-module id="my-view404">
+<dom-module id="game-view404">
   <template>
     <style>
       :host {
@@ -21,11 +21,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     Oops you hit a 404. <a href="/">Head back to home.</a>
+    <div class="footer">
+      <p class="confidential">Confidential</p>
+    </div>
   </template>
 
   <script>
     Polymer({
-      is: 'my-view404'
+      is: 'game-view404'
     });
   </script>
 </dom-module>

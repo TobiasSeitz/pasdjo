@@ -1,4 +1,5 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-slider/paper-slider.html">
 <link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
 <link rel="import" href="../components/likert-item.html">
@@ -18,12 +19,12 @@
       }
 
       .container {
-        @apply(--layout-horizontal);
-        @apply(--layout-center);
+        @apply --layout-horizontal;
+        @apply --layout-center;
       }
 
       paper-slider, paper-progress {
-        @apply(--layout-flex);
+        @apply --layout-flex;
       }
 
       paper-progress {
@@ -90,6 +91,14 @@
             value: function() {
               return [];
             }
+          },
+          progress: {
+            type: Number,
+            value: 0
+          },
+          finished: {
+            type: Boolean,
+            value: false
           }
         },
         _isInvalidRating: function(rating) {
