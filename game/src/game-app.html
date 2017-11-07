@@ -1,0 +1,436 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/app-localize-behavior/app-localize-behavior.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/iron-a11y-keys/iron-a11y-keys.html">
+<link rel="import" href="../bower_components/iron-icons/av-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-image/iron-image.html">
+<link rel="import" href="../bower_components/iron-list/iron-list.html">
+<link rel="import" href="../bower_components/iron-media-query/iron-media-query.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/iron-media-query/iron-media-query.html">
+
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button-light.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../bower_components/polymerfire/polymerfire.html">
+
+<link rel="import" href="../bower_components/flip-clock/flip-clock.html">
+<link rel="import" href="behaviors/toaster-behavior.html">
+<link rel="import" href="behaviors/format-behavior.html">
+
+<link rel="import" href="components/count-down.html">
+<link rel="import" href="components/cookie-toast.html">
+<link rel="import" href="components/frequency-lists.html">
+<link rel="import" href="components/game-logic.html">
+<link rel="import" href="components/passwords-service.html">
+<link rel="import" href="components/polymer-zxcvbn.html">
+<link rel="import" href="components/star-rating.html">
+<link rel="import" href="game-icons.html">
+
+
+<dom-module id="game-app">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+        --app-dark-primary-color: #1976D2;
+        --app-primary-color: #2196F3;
+        --app-light-primary-color: #BBDEFB;
+        --app-light-text-color: #FFFFFF;
+        --app-accent-color: #FF4081;
+        --app-secondary-color: #212121;
+        --app-secondary-text-color: #757575;
+        --app-divider-color: #BDBDBD;
+
+        display: block;
+      }
+
+      app-header {
+        color: #fff;
+        background-color: var(--app-primary-color);
+      }
+
+      app-header paper-icon-button {
+        --paper-icon-button-ink-color: white;
+      }
+
+      .drawer-list {
+        margin: 0 20px;
+      }
+
+      .drawer-list a {
+        display: block;
+
+        padding: 0 16px;
+
+        text-decoration: none;
+
+        color: var(--app-secondary-color);
+
+        line-height: 40px;
+      }
+
+      .drawer-list a.iron-selected {
+        color: black;
+        font-weight: bold;
+        background-color: #eee;
+      }
+
+      .toolbar-actions {
+        @apply --layout-center;
+        @apply --layout-horizontal;
+      }
+
+      .personalization {
+        @apply --layout-center;
+        @apply --layout-vertical;
+      }
+
+      .drawerFooter {
+        text-align: center;
+      }
+
+    </style>
+
+    <app-location route="{{route}}"
+                  use-hash-as-path
+    ></app-location>
+    <app-route
+        route="{{route}}"
+        pattern="/:page"
+        data="{{routeData}}"
+        tail="{{subroute}}"></app-route>
+
+    <firebase-app name="password-game"
+                  api-key="AIzaSyAHpWLLGed0ckCM_U2jyfYEsoFZw43wqA8"
+                  auth-domain="password-game.firebaseapp.com"
+                  database-url="https://password-game.firebaseio.com"></firebase-app>
+    <firebase-auth
+        id="auth"
+        app-name="password-game"
+        signed-in="{{signedIn}}"
+        user="{{user}}"
+        on-error="_handleSignInError"
+    ></firebase-auth>
+
+    <firebase-document
+        id="document"
+        app-name="password-game"
+        path="[[gameId]]"
+        data="{{gameData}}">
+    </firebase-document>
+
+    <firebase-document
+        id="scoreDoc"
+        app-name="password-game"
+        path="[[ leaderboardPath ]]">
+    </firebase-document>
+
+
+    <paper-toast id="toast"></paper-toast>
+    <cookie-toast></cookie-toast>
+
+    <iron-media-query query="(min-width: 765px)" query-matches="{{isWide}}"></iron-media-query>
+
+    <app-drawer-layout fullbleed force-narrow>
+      <!-- Drawer content -->
+      <app-drawer id="appDrawer">
+        <app-toolbar>[[ localize('menu') ]]</app-toolbar>
+        <div class="personalization">
+          <img src="../images/manifest/icon-192x192.png"
+               class="drawer profileImage"
+               alt="PASDJO"
+               hidden$="[[user.photoURL]]">
+          <img src$="[[user.photoURL]]"
+               class="drawer profileImage"
+               alt="profile image"
+               hidden$="[[!user.photoURL]]">
+
+          <span>[[user.displayName]]</span>
+        </div>
+
+        <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
+          <a name="game" href="#/game">[[ localize('play') ]]</a>
+          <template is="dom-if" if="[[signedIn]]">
+            <a name="highscore" href="#/highscore">[[ localize('highscores') ]]</a>
+            <a name="leaderboard" href="#/leaderboard">[[ localize('leaderboard') ]]</a>
+          </template>
+          <a name="about" href="#/about">[[ localize('about') ]]</a>
+          <!--<template is="dom-if" if="[[signedIn]]">
+            <a name="profile" href="#/profile">Profile</a>
+          </template>-->
+        </iron-selector>
+
+      </app-drawer>
+
+      <!-- Main content -->
+      <app-header-layout has-scrolling-region>
+
+        <app-header condenses reveals effects="waterfall">
+          <app-toolbar>
+            <paper-icon-button icon="menu" drawer-toggle></paper-icon-button>
+            <div main-title>
+              PASDJO <span hidden$="[[!isWide]]"> - [[ localize('the_password_game') ]]</span>
+            </div>
+            <div class="toolbar-actions">
+              <template is="dom-if" if="[[signedIn]]">
+
+                <img src$="[[user.photoURL]]"
+                     class="profileImage"
+                     alt="profile image"
+                     hidden$="[[!user.photoURL]]">
+                <paper-icon-button icon="pw-game:lock"
+                                   on-tap="_signOut"></paper-icon-button>
+
+              </template>
+
+              <div hidden$="[[signedIn]]">
+                <paper-button on-tap="_signIn">
+                  <iron-icon icon="pw-game:lock-open" class="padlock-open"></iron-icon>
+                  [[ localize('sign_in') ]]
+                </paper-button>
+                <!--<paper-icon-button icon="pw-game:lock-open"
+                                   on-tap="_signIn"></paper-icon-button>-->
+              </div>
+            </div>
+          </app-toolbar>
+        </app-header>
+
+        <iron-pages
+            selected="[[page]]"
+            attr-for-selected="name"
+            fallback-selection="view404"
+            role="main">
+          <game-view name="game"
+                     id="gameView"
+                     user="[[user]]"
+                     alias="{{ alias }}"
+                     language="[[language]]"
+                     on-request-anonymous-signin="_signInAnonymously"
+                     on-commit="_handleCommit"
+                     on-request-sign-in="_signIn"
+                     on-request-sign-out="_signOut"
+                     on-save-to-leaderboard="__saveScoreToLeaderboard"
+          ></game-view>
+          <leaderboard-view
+              name="leaderboard"
+              language="[[language]]"
+              own-alias=" alias "
+          >
+          </leaderboard-view>
+          <highscore-view name="highscore"
+                          language="[[language]]"
+                          uid="[[ user.uid ]]"
+          ></highscore-view>
+
+          <about-view name="about"
+                      language="[[language]]"
+          ></about-view>
+          <game-view404 name="view404"></game-view404>
+        </iron-pages>
+      </app-header-layout>
+    </app-drawer-layout>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'game-app',
+      behaviors: [Polymer.AppLocalizeBehavior, GameBehaviors.ToasterBehavior],
+      properties: {
+        page: {
+          type: String,
+          reflectToAttribute: true,
+          observer: '_pageChanged'
+        },
+        signedIn: {
+          type: Boolean,
+          observer: '_signedInChanged'
+        },
+        user: {
+          type: Object,
+          observer: '_userChanged'
+        },
+        alias: {
+          type: String,
+        },
+        language: {
+          type: String,
+          value: 'de'
+        },
+        routeData: {
+          type: Object
+        },
+        gameId: {
+          type: String
+        },
+        gameData: {
+          type: Object
+        },
+        leaderboardPath: {
+          type: String
+        },
+        scoreData: {
+          type: Object
+        },
+        subroute: {
+          type: Object
+        }
+      },
+      observers: [
+        '_routePageChanged(routeData.page)'
+      ],
+      attached: function() {
+        this.loadResources(this.resolveUrl('data/locales.json'));
+      },
+      ready: function() {
+        if (navigator.language) {
+          this.language = navigator.language.indexOf('en') !== -1 ? 'en' : 'de';
+        }
+      },
+      get gamesPath() {
+        return '/games/' + this.user.uid;
+      },
+
+      _routePageChanged: function(page) {
+        this.page = page || 'game';
+      },
+      _pageChanged: function(page) {
+        // Load page import on demand. Show 404 page if fails
+        var resolvedPageUrl = this.resolveUrl('views/' + page + '-view.html');
+        this.importHref(resolvedPageUrl, null, this._showPage404, true);
+        if (this.$.appDrawer) {
+          this.$.appDrawer.close();
+        }
+      },
+      // actual active sign in:
+      _signIn: function() {
+        if (this.$.auth) {
+
+          this.$.auth.signInWithPopup('google');
+        }
+      },
+      _handleSignInError: function(e) {
+        this._showToast(this.localize('login_error_toast'));
+      },
+      _signedInChanged: function(signedIn) {
+      },
+      _userChanged: function(user) {
+        /*if (user && user.email && user.email.match(/.*@google.com$/)) {
+          this.alias = user.email.split('@')[0];
+        }*/
+      },
+      _signOut: function() {
+        if (this.$.auth && this.user) {
+          if (this.user.isAnonymous) {
+            this._signIn()
+          } else {
+            this.$.auth.signOut();
+          }
+        }
+      },
+      _signInAnonymously: function() {
+        if (this.$.auth) {
+          if (!this.user || !this.user.uid) {
+            this.$.auth.signInAnonymously();
+          }
+        }
+      },
+      _handleCommit: function(e) {
+        var changeCommits;
+
+        // e.detail.score + e.detail.rounds
+        this.gameData = e.detail;
+
+        if (this.$.document) {
+          changeCommits = this.save();
+          changeCommits.then(function() {
+            // console.log('data persisted to firebase');
+            this.gameData = null;
+          }.bind(this));
+        } else {
+          console.log('cannot persist to firebase because document element doesnt exist');
+        }
+      },
+
+      /* required parameters for gameData: achieved, percent */
+      save: function() {
+        if (this.$.document.isNew &&
+          (this.gameData.achieved && this.gameData.percent)) {
+          return this.$.document.save(this.gamesPath).then(function() {
+            this.$.document.reset();
+          }.bind(this)).catch(function(err) {
+            console.log('Firebase error.', err);
+          });
+        } else {
+          // console.warn('game data to be saved did not contain all required fields. Did not save.');
+        }
+
+        return Promise.resolve();
+      },
+
+      /**
+       * @param {Object} event to be saved (just like in commit)
+       * redundant storage of scores to leaderboard.
+       */
+      __saveScoreToLeaderboard: function(event) {
+
+        let data = event.detail;
+
+        // we use the achieved score as top-level 
+        this.leaderboardPath = '/leaderboard/' + (data.pscore ? data.pscore.toString() : '0'); // fallback TODO
+
+        this.scoreData = {
+          timestamp: (new Date()).getTime(),
+          score: data.pscore,
+          x: data.x,
+          alias: data.alias
+        };
+
+        this.$.scoreDoc.reset();
+
+        // add the data to the high score
+        if (this.$.scoreDoc.isNew && this.scoreData.timestamp && this.scoreData.score && this.leaderboardPath) {
+          this.$.scoreDoc.data = this.scoreData;
+
+          // we use the alias as key!
+          this.$.scoreDoc.save(this.leaderboardPath, data.alias).then(function() {
+            this._showToast(this.localize('leaderboard_save_success', 'alias', this.scoreData.alias));
+            this.$.scoreDoc.reset();
+            this.$.gameView.resetLastCommit();
+            this.scoreData = null;
+          }.bind(this)).catch(function(err) {
+            console.log('Firebase error.', err);
+          });
+        } else {
+          // console.warn('score data not saved to firebase, because a parameter was missing or failed to meet requirements.')
+        }
+      },
+      _showPage404: function() {
+        this.page = 'view404';
+      }
+    });
+  </script>
+</dom-module>

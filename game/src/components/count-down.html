@@ -1,0 +1,35 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../shared-styles.html">
+
+<dom-module id="count-down">
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'count-down',
+        properties: {
+          duration: {
+            type: Number,
+            value: 120 * 1000
+          }
+        },
+        start: function() {
+          var self = this;
+          this.timer = this.async(function() {
+            self.fire('time-out');
+          }, this.duration);
+          this.endTimestamp = Date.now() + this.duration;
+        },
+        stop: function() {
+          if (this.timer) {
+            this.cancelAsync(this.timer);
+          }
+          this.fire('countdown-stopped');
+        },
+        getRemainingTime: function() {
+          return this.endTimestamp - Date.now();
+        }
+      });
+    })();
+  </script>
+</dom-module>

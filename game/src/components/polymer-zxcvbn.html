@@ -1,0 +1,45 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<script src="../../bower_components/zxcvbn/dist/zxcvbn.js"></script>
+
+<dom-module id="polymer-zxcvbn">
+  <template>
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'polymer-zxcvbn',
+        properties: {
+          password: {
+            type: String
+          },
+          userDictionary: {
+            type: Array,
+            value: function() {
+              return [];
+            }
+          },
+          fullResult: {
+            type: Object,
+            notify: true,
+            computed: '_analyze(password,userDictionary)'
+          }
+        },
+        observers: [
+          '_analyze(password,userDictionary)'
+        ],
+        ready: function() {},
+        _analyze: function(password, userDictionary) {
+          var result;
+          if (typeof zxcvbn != 'undefined') {
+            result = zxcvbn(password, userDictionary);
+            this.fire('full-result-available', result);
+          } else {
+            console.warn('zxcvbn is undefined.');
+          }
+          return result;
+        }
+      });
+    })();
+  </script>
+</dom-module>

@@ -1,0 +1,74 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+
+<link rel="import" href="../shared-styles.html">
+
+<dom-module id="about-view">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+      }
+    </style>
+    <div class="card">
+      <h2>[[ localize('about_pasdjo') ]]</h2>
+      <div>
+        <h3>[[ localize('background') ]]</h3>
+        <p>[[ localize('a_inspiration') ]] (<a
+            href="https://pdfs.semanticscholar.org/aa43/88d76dd3e7595730c3c5979323848cf8c4b3.pdf" target="_blank">CHI
+          2016</a>). [[ localize('a_results') ]] </p>
+      </div>
+      <div>
+        <h3>[[ localize('disclaimer') ]]</h3>
+        <p>[[ localize('a_disclaimer_1') ]]</p>
+        <p>[[ localize('a_disclaimer_2') ]]</p>
+      </div>
+      <div>
+        <h3>[[ localize('creators') ]]</h3>
+        <p>[[ localize('a_creators_1') ]] (<a
+            href="http://www.medien.ifi.lmu.de/lehre/ws1617/openlab/">[[ localize('more_info') ]]</a>)</p>
+        <ul>
+          <li><a href="http://www.medien.ifi.lmu.de/team/tobias.seitz" target="_blank">
+            [[ localize('a_creators_tobi_mimuc') ]]</a></li>
+          <li><a href="https://www.tobi-seitz.com">[[ localize('a_creators_tobi_personal')]]</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>[[ localize('credits') ]]</h3>
+        <p>[[ localize('a_libraries') ]]:</p>
+        <ul>
+          <li>Polymer and Polymer Elements</li>
+          <li>zxcvbn</li>
+          <li>flip-clock</li>
+          <li>Firebase</li>
+        </ul>
+      </div>
+      <div>
+        <h3>[[ localize('data_usage') ]]</h3>
+        <p>[[ localize('a_data_usage_statement_1') ]]</p>
+      </div>
+    </div>
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'about-view',
+        behaviors: [
+          Polymer.AppLocalizeBehavior
+        ],
+        attached: function() {
+          this.loadResources(this.resolveUrl('../data/locales.json'));
+        },
+        properties: {
+          language: {
+            type: String,
+            value: 'de'
+          }
+        },
+        ready: function() {
+        }
+      });
+    })();
+  </script>
+</dom-module>

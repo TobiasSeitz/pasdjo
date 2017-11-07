@@ -1,0 +1,151 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymerfire/firebase-query.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../shared-styles.html">
+<link rel="import" href="../behaviors/format-behavior.html">
+<link rel="import" href="../game-icons.html">
+
+<dom-module id="leaderboard-view">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+      }
+
+      .row .prow .pscore {
+        flex: 1;
+      }
+
+      .row .prow .place {
+        color: var(--app-accent-color);
+      }
+
+      .player {
+        display: flex;
+        align-items: center;
+        padding: 5px 0;
+      }
+
+      .player .alias {
+        flex: 1;
+      }
+
+      .player iron-icon:first-of-type {
+        height: 24px;
+        width: 24px;
+        margin: 0 5px 0 0;
+        color: var(--app-secondary-text-color);;
+      }
+
+      .player .time {
+        color: var(--app-divider-color);
+      }
+
+      .conditions {
+        font-size: 80%;
+        color: var(--app-secondary-text-color);;
+      }
+
+
+    </style>
+
+    <firebase-query id="leaderboardQuery" app-name="password-game" path="/leaderboard" data="{{ leaderboard }}">
+
+      <div class="card">
+        <h2>[[ localize('leaderboard_contest') ]]</h2>
+        <div class="conditions">
+          <div class="winner">
+            [[ localize('who_wins') ]]
+            <p>[[ localize('if_cheating') ]]</p>
+          </div>
+
+          <div class="end">[[ localize('competition_end') ]]</div>
+        </div>
+
+        <div class="scores">
+          <template is="dom-repeat" items="[[ leaderboard ]]" as="entry" initial-count="10" sort="_sortScores"
+                    observe="$key">
+            <div class="row">
+              <div class="prow">
+                <span class="pscore">[[ entry.$key ]] Points</span>
+                <span class="place">[[ _plusOne(index) ]]</span>
+              </div>
+              <div class="playersrow">
+                <template is="dom-repeat" items="[[ _getPlayers(entry) ]]" as="player">
+                  <div class$="player [[_isOwn(player.alias, ownAlias)]]">
+                    <span class="alias">[[ player.alias ]]</span>
+                    <span class="time">[[ _dateFromTimestamp(player.timestamp) ]]</span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+      <div class="footer">
+        <p class="confidential">[[ localize('confidential') ]]</p>
+      </div>
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'leaderboard-view',
+        behaviors: [
+          Polymer.AppLocalizeBehavior,
+          GameBehaviors.FormatBehavior
+        ],
+        properties: {
+          leaderboard: {
+            type: Object,
+            observer: '_leaderboardChanged'
+          },
+          ownAlias: {
+            type: String,
+            value: ''
+          },
+          language: {
+            type: String,
+            value: 'en'
+          }
+        },
+        _sortScores: function(entryA, entryB) {
+          return entryB.$key - entryA.$key;
+        },
+        _plusOne: function(index) {
+          return typeof index === 'number' ? index + 1 : index;
+        },
+        attached: function() {
+          this.loadResources(this.resolveUrl('../data/locales.json'));
+        },
+        _leaderboardChanged: function(leaderboard) {
+        },
+        _getPlayers: function(entry) {
+          var exclude = '$key';
+          var playerNames = Object.keys(entry).filter(function(key) {
+            return key != exclude;
+          });
+          var players = playerNames.map(function(name) {
+            return {
+              alias: name,
+              timestamp: entry[name].timestamp
+            }
+          });
+          return players;
+        },
+        /**
+         * returns the 'own' class if the current repetition of dom-repeat has a player whose alias is our own.
+         *
+         * @param {string} playerAlias
+         * @param {string} ownAlias
+         * @return {string}
+         * @private
+         */
+        _isOwn: function(playerAlias, ownAlias) {
+          return playerAlias === ownAlias ? 'own' : '';
+        }
+      });
+    })();
+  </script>
+</dom-module>

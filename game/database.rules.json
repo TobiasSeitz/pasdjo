@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "games": {
+      "$uid": {
+        ".write": "$uid === auth.uid",
+        ".read": "$uid === auth.uid"
+      }
+    },
+    "leaderboard": {
+      ".read": true,
+      "$score": {
+        "$alias": {
+          ".write": "auth != null && newData.hasChild('timestamp') && newData.hasChild('alias') && newData.child('alias').val() === $alias"
+        }
+      }
+    }
+  }
+}

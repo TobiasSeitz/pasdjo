@@ -1,0 +1,136 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-a11y-keys-behavior/iron-a11y-keys-behavior.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+
+<dom-module id="star-rating">
+  <template>
+    <style>
+      :host {
+        width: 100%;
+        display: flex;
+        @apply --star-rating;
+      }
+
+      :host[fixed] {
+
+        --paper-icon-button-disabled: {
+          padding: 0;
+          @apply --star-rating-icon-button;
+        }
+      }
+
+      paper-icon-button {
+        flex: 1;
+        height: 60px;
+        @apply --star-rating-icon-button;
+      }
+
+      iron-icon:hover {
+        cursor: pointer;
+      }
+
+    </style>
+
+    <template is="dom-repeat" items="[[stars]]" as="star">
+      <paper-icon-button icon="[[star.icon]]"
+                         on-mouseover="_handleMouseOver"
+                         on-mouseout="_handleMouseOut"
+                         on-tap="_handleTap"
+                         disabled="[[fixed]]"
+                         id="btn[[index]]"
+      ></paper-icon-button>
+    </template>
+
+  </template>
+  <script>
+    Polymer({
+      is: 'star-rating',
+      behaviors: [
+        Polymer.IronA11yKeysBehavior
+      ],
+      properties: {
+        max: {
+          type: Number,
+          value: 5
+        },
+        rating: {
+          type: Number,
+          value: 0,
+          notify: true
+        },
+        stars: {
+          type: Array
+        },
+        fixed: {
+          type: Boolean,
+          value: false
+        },
+        keysEnabled: {
+          type: Boolean,
+          reflectToAttribute: true,
+          value: false,
+          notify: true
+        },
+        keyEventTarget: {
+          type: Object,
+          value: function() {
+            return document.body;
+          }
+        }
+      },
+      observers: [
+        '_makeStars(rating, max)'
+      ],
+      keyBindings: {
+        '0 1 2 3 4 5': '_handleKeyPress'
+      },
+      _makeStars: function(rating, max) {
+        var stars = [];
+        for (var i = 0; i < max; i++) {
+          stars[i] = {
+            icon: i < rating ? 'pw-game:star' : 'pw-game:star-border'
+          }
+        }
+        this.stars = stars;
+      },
+      ready: function() {
+
+      },
+      reset: function() {
+        this.async(function() {
+          this.rating = 0;
+        }, 100);
+      },
+      _handleMouseOver: function(e) {
+        if (!this.fixed) {
+          this._makeStars(e.model.index + 1, this.max);
+        }
+      },
+      _handleMouseOut: function() {
+        if (!this.fixed) {
+          this._makeStars(this.rating, this.max);
+        }
+      },
+      _handleTap: function(e) {
+        if (!this.fixed) {
+          this.rating = e.model.index + 1;
+          this.fire('user-tap', this.rating);
+        }
+      },
+      _handleKeyPress: function(e) {
+        var rating = parseInt(e.detail.key);
+        var animationDuration = 200;
+        // only handle the key press if the keys-enabled attribute was set
+        if (this.keysEnabled && typeof rating === 'number') {
+          this.rating = rating;
+
+          // wait for the user-tap in this case so that the user can actually see
+          // the rating change.
+          this.async(function() {
+            this.fire('user-tap', this.rating);
+          }, animationDuration);
+        }
+      }
+    });
+  </script>
+</dom-module>

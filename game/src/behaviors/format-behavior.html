@@ -1,0 +1,36 @@
+<script>
+  window.GameBehaviors = window.GameBehaviors || {};
+  /**
+   * @polymerBehavior GameBehaviors.FormatBehavior
+   *
+   * @type {{_jsonStringify: GameBehaviors.FormatBehavior._jsonStringify, _niceDate: GameBehaviors.FormatBehavior._niceDate, _dateFromTimestamp: GameBehaviors.FormatBehavior._dateFromTimestamp}}
+   */
+  GameBehaviors.FormatBehavior = {
+    _jsonStringify: function(json) {
+      return JSON.stringify(json, null, 2);
+    },
+    _niceDate: function(date) {
+      // prefixes a number if it's less than ten.
+      function pf(num) {
+        return num < 10 ? '0' + num : num;
+      }
+
+      var hours = date.getHours();
+      var minutes = date.getMinutes();
+      var day = date.getDate();
+      var month = date.getMonth() + 1; // javascript is inconsistent.
+      var year = date.getFullYear();
+
+      return pf(day) + '.' + pf(month) + '.' + year + ' ' + pf(hours) + ':' + pf(minutes);
+    },
+    /**
+     *
+     * @param {Number} timestamp
+     * @return {String} representation of the timestamp as nice date.
+     * @private
+     */
+    _dateFromTimestamp: function(timestamp){
+      return GameBehaviors.FormatBehavior._niceDate(new Date(timestamp));
+    }
+  }
+</script>

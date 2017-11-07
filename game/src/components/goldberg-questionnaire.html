@@ -1,0 +1,442 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-slider/paper-slider.html">
+<link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
+<link rel="import" href="../components/likert-item.html">
+<link rel="import" href="../shared-styles.html">
+
+<dom-module id="goldberg-questionnaire">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+        width: 100%;
+        height: 100%;
+      }
+
+      .item {
+        font-size: 200%;
+      }
+
+      .container {
+        @apply --layout-horizontal;
+        @apply --layout-center;
+      }
+
+      paper-slider, paper-progress {
+        @apply --layout-flex;
+      }
+
+      paper-progress {
+        --paper-progress-active-color: var(--app-accent-color);
+      }
+
+      .label {
+        display: inline-block;
+      }
+
+    </style>
+
+    <template is="dom-if" if="[[!finished]]">
+      <div>
+        <h2>How does this statement describe you?</h2>
+        <p class="item">[[currentItem.text]]</p>
+      </div>
+      <div class="container">
+        <div class="label">
+        </div>
+        <likert-item id="likert" agreement="{{rating}}"></likert-item>
+        <div class="label">
+        </div>
+      </div>
+      <div>
+        <paper-button on-tap="next" disabled="[[_isInvalidRating(rating)]]">Next Question</paper-button>
+      </div>
+    </template>
+
+    <template is="dom-if" if="[[finished]]">
+      <h3>All done!</h3>
+      <p>
+        You've answered all questions of the personality test.
+      </p>
+      <p>
+        Here are your results:
+      </p>
+      <p>
+        TODO
+      </p>
+    </template>
+    <div>
+      <h4>Progress</h4>
+      <div class="container">
+        <paper-progress value="[[progress]]" class="blue"></paper-progress>
+      </div>
+    </div>
+
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'goldberg-questionnaire',
+        properties: {
+          currentItem: {
+            type: Object,
+            value: function() {
+              return {};
+            }
+          },
+          responses: {
+            type: Array,
+            value: function() {
+              return [];
+            }
+          },
+          progress: {
+            type: Number,
+            value: 0
+          },
+          finished: {
+            type: Boolean,
+            value: false
+          }
+        },
+        _isInvalidRating: function(rating) {
+          return typeof rating !== 'number' || rating === -1
+        },
+        ready: function() {
+          this.items = [
+            {
+              "id": "1",
+              "text": "Am the life of the party. ",
+              "keying": "+",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "2",
+              "text": "Feel little concern for others.",
+              "keying": "-",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "3",
+              "text": "Am always prepared.",
+              "keying": "+",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "4",
+              "text": "Get stressed out easily.",
+              "keying": "-",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "5",
+              "text": "Have a rich vocabulary.",
+              "keying": "+",
+              "factor": "Openness"
+            },
+            {
+              "id": "6",
+              "text": "Don't talk a lot.",
+              "keying": "-",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "7",
+              "text": "Am interested in people.",
+              "keying": "+",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "8",
+              "text": "Leave my belongings around.",
+              "keying": "-",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "9",
+              "text": "Am relaxed most of the time.",
+              "keying": "+",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "10",
+              "text": "Have difficulty understanding abstract ideas.",
+              "keying": "-",
+              "factor": "Openness"
+            },
+            {
+              "id": "11",
+              "text": "Feel comfortable around people.",
+              "keying": "+",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "12",
+              "text": "Insult people.",
+              "keying": "-",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "13",
+              "text": "Pay attention to details.",
+              "keying": "+",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "14",
+              "text": "Worry about things.",
+              "keying": "-",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "15",
+              "text": "Have a vivid imagination.",
+              "keying": "+",
+              "factor": "Openness"
+            },
+            {
+              "id": "16",
+              "text": "Keep in the background.",
+              "keying": "-",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "17",
+              "text": "Sympathize with others' feelings.",
+              "keying": "+",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "18",
+              "text": "Make a mess of things.",
+              "keying": "-",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "19",
+              "text": "Seldom feel blue.",
+              "keying": "+",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "20",
+              "text": "Am not interested in abstract ideas.",
+              "keying": "-",
+              "factor": "Openness"
+            },
+            {
+              "id": "21",
+              "text": "Start conversations.",
+              "keying": "+",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "22",
+              "text": "Am not interested in other people's problems.",
+              "keying": "-",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "23",
+              "text": "Get chores done right away.",
+              "keying": "+",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "24",
+              "text": "Am easily disturbed.",
+              "keying": "-",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "25",
+              "text": "Have excellent ideas.",
+              "keying": "+",
+              "factor": "Openness"
+            },
+            {
+              "id": "26",
+              "text": "Have little to say.",
+              "keying": "-",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "27",
+              "text": "Have a soft heart.",
+              "keying": "+",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "28",
+              "text": "Often forget to put things back in their proper place.",
+              "keying": "-",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "29",
+              "text": "Get upset easily.",
+              "keying": "-",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "30",
+              "text": "Do not have a good imagination.",
+              "keying": "-",
+              "factor": "Openness"
+            },
+            {
+              "id": "31",
+              "text": "Talk to a lot of different people at parties.",
+              "keying": "+",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "32",
+              "text": "Am not really interested in others.",
+              "keying": "-",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "33",
+              "text": "Like order.",
+              "keying": "+",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "34",
+              "text": "Change my mood a lot.",
+              "keying": "-",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "35",
+              "text": "Am quick to understand things.",
+              "keying": "+",
+              "factor": "Openness"
+            },
+            {
+              "id": "36",
+              "text": "Don't like to draw attention to myself.",
+              "keying": "-",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "37",
+              "text": "Take time out for others.",
+              "keying": "+",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "38",
+              "text": "Shirk my duties.",
+              "keying": "-",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "39",
+              "text": "Have frequent mood swings.",
+              "keying": "-",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "40",
+              "text": "Use difficult words.",
+              "keying": "+",
+              "factor": "Openness"
+            },
+            {
+              "id": "41",
+              "text": "Don't mind being the center of attention.",
+              "keying": "+",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "42",
+              "text": "Feel others' emotions.",
+              "keying": "+",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "43",
+              "text": "Follow a schedule.",
+              "keying": "+",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "44",
+              "text": "Get irritated easily.",
+              "keying": "-",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "45",
+              "text": "Spend time reflecting on things.",
+              "keying": "+",
+              "factor": "Openness"
+            },
+            {
+              "id": "46",
+              "text": "Am quiet around strangers.",
+              "keying": "-",
+              "factor": "Extraversion"
+            },
+            {
+              "id": "47",
+              "text": "Make people feel at ease.",
+              "keying": "+",
+              "factor": "Agreeableness"
+            },
+            {
+              "id": "48",
+              "text": "Am exacting in my work.",
+              "keying": "+",
+              "factor": "Conscientiousness"
+            },
+            {
+              "id": "49",
+              "text": "Often feel blue.",
+              "keying": "-",
+              "factor": "Neuroticism"
+            },
+            {
+              "id": "50",
+              "text": "Am full of ideas.",
+              "keying": "+",
+              "factor": "Openness"
+            }
+          ];
+          this.totalItems = this.items.length;
+          this.finished = false;
+          this.next();
+        },
+        commit: function() {
+          if (this.currentItem && this.currentItem.id && typeof this.rating === 'number') {
+            this.push('responses', {
+              id: this.currentItem.id,
+              score: this.currentItem.keying === '-' ? (5 - this.rating) : this.rating,
+              originalRating: this.rating,
+              key: this.currentItem.keying
+            });
+            this.rating = -1;
+            console.log(this.responses[this.responses.length - 1]);
+          }
+        },
+        next: function() {
+          this.commit();
+          if (this.items.length) {
+
+            var randomIndex = Math.floor(Math.random() * this.items.length);
+
+            this.currentItem = this.items.splice(randomIndex, 1)[0];
+
+            this.progress = Math.floor((this.responses.length / this.totalItems) * 100);
+          } else {
+            this.finished = true
+          }
+        }
+      });
+    })();
+  </script>
+</dom-module>

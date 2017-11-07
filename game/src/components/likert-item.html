@@ -1,0 +1,71 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../bower_components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../shared-styles.html">
+
+<dom-module id="likert-item">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+        width: 100%;
+        height: 100%;
+      }
+      paper-radio-group {
+        @apply --layout-horizontal;
+        @apply --layout-center;
+      }
+      paper-radio-button {
+        @apply --layout-flex;
+      }
+    </style>
+
+    <paper-radio-group selected="{{agreement}}" allow-empty-selection>
+      <template is="dom-repeat" items="[[labels]]" as="label">
+        <paper-radio-button name="[[label.value]]">[[label.text]]</paper-radio-button>
+      </template>
+    </paper-radio-group>
+
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'likert-item',
+        properties: {
+          agreement: {
+            type: Number,
+            value: -1,
+            notify: true,
+            observer: '_agreementChanged'
+          },
+          labels: {
+            type: Array,
+            value: function() {
+              return [
+                {text: 'strongly disagree', value: 0},
+                {text: 'disagree', value: 1},
+                {text: 'neither disagree nor agree', value: 2},
+                {text: 'agree', value: 3},
+                {text: 'strongly agree', value: 4}
+              ]
+            }
+          }
+        },
+        _agreementChanged: function() {
+          if(typeof this.agreement === 'number' && this.agreement !== -1) {
+            this.fire('item-rated', this.agreement);
+            console.log(this.agreement);
+          } else {
+            this.agreement = -1
+          }
+        },
+        ready: function() {
+        },
+        reset: function() {
+          this.agreement = undefined;
+        }
+      });
+    })();
+  </script>
+</dom-module>

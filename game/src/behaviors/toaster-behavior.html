@@ -1,0 +1,17 @@
+<script>
+  window.GameBehaviors = window.GameBehaviors || {};
+  /**
+   * @polymerBehavior GameBehaviors.ToasterBehavior
+   *
+   * @type {{_showToast: GameBehaviors.ToasterBehavior._showToast}}
+   */
+  GameBehaviors.ToasterBehavior = {
+    _showToast: function(message, duration) {
+      if (this.$.toast) {
+        this.$.toast.duration = duration ? duration : this.$.toast.duration;
+        this.$.toast.text = message;
+        this.$.toast.show();
+      }
+    }
+  }
+</script>

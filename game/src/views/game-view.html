@@ -1,0 +1,574 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-image/iron-image.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-toast/paper-toast.html">
+
+<link rel="import" href="../../bower_components/flip-clock/flip-clock.html">
+
+<link rel="import" href="../game-icons.html">
+<link rel="import" href="../shared-styles.html">
+<link rel="import" href="../behaviors/format-behavior.html">
+<link rel="import" href="../behaviors/toaster-behavior.html">
+
+
+<link rel="import" href="../components/game-logic.html">
+<link rel="import" href="../components/star-rating.html">
+
+
+<dom-module id="game-view">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+        --paper-light-green-700: #689f38;
+        --paper-green-800: #2e7d32;
+        --paper-yellow-900: #f57f17;
+        --paper-orange-900: #e65100;
+        --paper-red-a400: #ff1744;
+        --paper-pink-800: #ad1457;
+      }
+
+      ul {
+        padding-left: 16px;
+      }
+
+      .zxcvbnFullResult {
+        white-space: pre;
+        font-family: 'Menlo', 'Consolas', monospace;
+        font-size: 8px;
+      }
+
+      .currentPw {
+        margin: auto;
+        display: block;
+        text-align: center;
+        font-size: 28px;
+        padding: 16px;
+        color: var(--app-primary-color);
+        font-weight: bold;
+      }
+
+      flip-clock {
+        text-align: center;
+        --digit-size: 40px;
+        --digit-bg-color: var(--app-primary-color);
+        --digit-divider-color: var(--app-dark-primary-color);
+        --digit-box-shadow: none;
+        --clock-digit: {
+          margin-right: 2px;
+        };
+        --divider-bar: {
+          display: none;
+        }
+      }
+
+      paper-button {
+        background-color: var(--app-accent-color);
+        color: var(--app-light-text-color);
+      }
+
+      .explicitWarning {
+        color: var(--app-secondary-text-color);
+        font-size: 80%;
+        display: block;
+        padding: 10px 0 5px 5px;
+      }
+
+      .startButtons {
+        @apply --layout-horizontal;
+        @apply --layout-center;
+      }
+      .startButtons > paper-button:first-of-type {
+        margin-left: 0;
+      }
+
+      paper-toast {
+        --paper-toast-color: var(--app-light-primary-color);
+      }
+
+      star-rating {
+        width: 100%;
+      }
+
+      star-rating[fixed] {
+        max-width: 250px;
+      }
+
+      star-rating[fixed].tendency-0 {
+        --star-rating-icon-button: {
+          color: var(--paper-green-800);
+        }
+      }
+
+      star-rating[fixed].tendency-1 {
+        --star-rating-icon-button: {
+          color: var(--paper-light-green-700);
+        }
+      }
+
+      star-rating[fixed].tendency-2 {
+        --star-rating-icon-button: {
+          color: var(--paper-yellow-900);
+        }
+      }
+
+      star-rating[fixed].tendency-3 {
+        --star-rating-icon-button: {
+          color: var(--paper-orange-900);
+        }
+      }
+
+      star-rating[fixed].tendency-4 {
+        --star-rating-icon-button: {
+          color: var(--paper-red-a400);
+        }
+      }
+
+      #saveLeaderBoardButton {
+        margin-left: 0;
+      }
+
+      #signInRequestButton {
+        background-color: transparent;
+        color: var(--app-secondary-text-color);
+      }
+
+      .pscore {
+        font-weight: 100;
+        font-size: 32px;
+      }
+
+      .scores .row {
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        width: 100%;
+        max-width: 800px;
+        margin: 0;
+        border-bottom: 1px dashed #ccc;
+        padding: 16px 0;
+      }
+
+      .scores .row > .flexContainer {
+        flex: 1;
+        display: flex;
+        justify-items: center;
+        flex-wrap: wrap;
+        max-width: 100%;
+      }
+
+      .scores .row .password {
+        min-width: 250px;
+        margin-right: 24px;
+        font-weight: bold;
+        flex-grow: 0;
+        flex-shrink: 1;
+        /*flex-basis: 100%;*/
+        color: var(--app-primary-color);
+      }
+
+      .scores .row .password > .condition {
+        display: block;
+        color: #9e9e9e;
+        font-weight: 100;
+      }
+
+      .scores .row > .passwordContainer {
+        display: flex;
+      }
+
+      .flexContainer > span {
+        text-align: left;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+
+      .flexContainer > span:first-of-type {
+        background-color: #eeeeee;
+        padding: 5px;
+        margin-right: 5px;
+      }
+
+      .flexContainer span:not(:last-of-type) {
+
+      }
+
+      .flexContainer span.flexLabel {
+        min-width: 150px;
+      }
+
+      .restartArea {
+        padding: 16px 0 0 0;
+      }
+
+      .leaderboardJourney {
+        margin: 20px 0px 0 0;
+      }
+
+      .highlight {
+        border: 2px dashed var(--app-accent-color);
+        padding: 20px 10px 15px 10px;
+      }
+
+      .instructions {
+        @apply --layout-horizontal;
+        @apply --layout-start;
+      }
+
+      /* smart phones */
+      @media (max-width: 420px) {
+        flip-clock {
+          --digit-size: 20px;
+        }
+
+        .scores .row {
+          display: block;
+          flex: 0;
+        }
+
+        .scores .row .password {
+          min-width: 200px;
+          margin-right: 10px;
+          flex: 0;
+          display: block;
+        }
+
+        .scores .row > .flexContainer {
+          flex: 0;
+          display: block;
+          max-width: 100%;
+        }
+
+        .flexContainer > span:first-of-type {
+          background-color: transparent;
+          padding: 0;
+          margin: 0;
+        }
+      }
+    </style>
+    <paper-toast id="toast" duration="3000"></paper-toast>
+
+    <div class="card">
+      <div hidden$="[[ setupHidden ]]">
+
+        <!-- INSTRUCTIONS -->
+        <div class="instructions">
+
+          <div class="copy">
+            <h2>[[ localize('lets_play') ]]</h2>
+            <h3>[[ localize('heres_how_it_works') ]]:</h3>
+            <ul>
+              <li>[[ localize('you_will_rate_the_strength') ]]</li>
+              <li>[[ localize('instruction_pt3') ]]</li>
+              <li>
+                [[ localize('instruction_pt1') ]]<br/>
+                [[ localize('instruction_pt2') ]]<br/>
+                [[ localize('try_it_here') ]]:
+                <star-rating keys-enabled="[[ !running ]]"></star-rating>
+              </li>
+
+            </ul>
+          </div>
+
+        </div>
+
+
+        <!-- hide the start button until the player has signed in. -->
+        <div hidden$="[[ running ]]">
+          <div class="explicitWarning">
+            [[ localize('please_note')]]: [[ localize('explicit_warning')]]
+          </div>
+          <p>[[ localize('ready_lets_go') ]]</p>
+          <div class="startButtons">
+            <paper-button on-tap="_startGame" id="startButton">[[ localize('start')]]</paper-button>
+            <!-- prompt the player to sign in to play the game. -->
+            <paper-button on-tap="_requestSignIn" hidden$="[[ user.emailVerified ]]" id="signInRequestButton">
+              <iron-icon icon="pw-game:lock-open"></iron-icon>
+              [[ localize('sign_in_to_play')]]
+            </paper-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN - GAME -->
+      <div class="main" hidden$="[[!running]]">
+
+        <flip-clock id="flipClock" display-mode="countdown" start-from="1" hide-hours></flip-clock>
+        <p class="instruction">[[ localize('please_rate_this_pw') ]]:</p>
+        <div class="currentPw">[[currentPw]]</div>
+
+        <star-rating id="rating"
+                     rating="0"
+                     max="5"
+                     on-user-tap="_handleRating"
+                     keys-enabled="[[ running ]]"
+        ></star-rating>
+
+        <game-logic id="logic"
+                    running="{{ running }}"
+                    game-over="{{ gameOver }}"
+                    current-password="{{currentPw}}"
+                    on-game-over="_handleGameOver"
+                    passwords="{{rounds}}"
+                    score="{{score}}"
+        ></game-logic>
+
+      </div>
+
+
+      <!-- GAME OVER - SCORES -->
+      <div class="scores" hidden$="[[!gameOver]]">
+        <div>
+
+          <h2 class="pscore">[[ localize('pscore') ]]: <strong>[[ score.pscore ]]</strong></h2>
+          <h2>[[ feedbackHeading ]]</h2>
+
+          <h4>[[ localize('score_breakdown') ]]:
+            <span>[[score.achieved]]</span> /
+            <span>[[score.total]]</span>
+            (<span>[[score.percent]]%</span>)
+          </h4>
+
+        </div>
+
+        <!--
+          ASK TO ADD THE SCORE TO THE LEADERBOARD
+        -->
+        <div class="highlight">
+          <paper-input label="[[ localize('nickname') ]]" value="{{ alias }}"></paper-input>
+          <paper-button id="saveLeaderBoardButton" raised disabled="[[ !_canSave(alias, lastCommit) ]]"
+                        on-tap="_fireLeaderboardRequest">[[ localize('save_to_leaderboard') ]]
+          </paper-button>
+        </div>
+
+        <h4>
+          [[ localize('game_history') ]]:
+        </h4>
+        <template is="dom-repeat" items="[[rounds]]" as="round" sort="_byTimestamp">
+          <div class="row">
+            <span class="passwordContainer">
+              <span class="password">[[round.password]]
+                <span class="condition">[[ localize(round.condition) ]]</span>
+              </span>
+            </span>
+            <div class="flexContainer">
+            <span><span class="flexLabel">[[ localize('analysis') ]]: [[round.score]]</span>
+              <star-rating rating="[[round.score]]"
+                           fixed
+              ></star-rating>
+            </span>
+
+              <span><span class="flexLabel">[[ localize('your_rating') ]]: [[round.user_rating]]</span>
+            <star-rating rating="[[round.user_rating]]"
+                         fixed
+                         class$="[[_getRatingClass(round.tendency)]]"></star-rating>
+            </span>
+            </div>
+          </div>
+        </template>
+
+        <div class="restartArea">
+          <paper-button on-tap="_startGame" id="restartButton" hidden="[[running]]">
+            <iron-icon icon="pw-game:refresh"></iron-icon>
+            [[ localize('play_again') ]]
+          </paper-button>
+          <div class="leaderboardJourney"><a href="#/leaderboard">[[ localize('go_to_leaderboard') ]]</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer" hidden$="[[running]]">
+      <div class="desktopOnly">
+        <iron-icon icon="pw-game:notifications"></iron-icon>
+        <span>[[ localize('tip_keys_to_rate' )]]</span>
+      </div>
+    </div>
+
+  </template>
+  <script>
+    Polymer({
+      get oAuth() {
+        return 'OAuth'
+      },
+      is: 'game-view',
+      properties: {
+        secret: {
+          type: String,
+          notify: true
+        },
+        user: {
+          type: Object,
+          observer: '_handleUserChanged'
+        },
+        language: {
+          type: String,
+          value: 'de'
+        },
+        a11yTarget: {
+          type: Object
+        },
+        feedbackHeading: {
+          type: String
+        },
+        running: {
+          type: Boolean,
+          value: false
+        },
+        gameOver: {
+          type: Boolean,
+          value: false
+        },
+        setupHidden: {
+          type: Boolean,
+          value: false
+        },
+        alias: {
+          type: String,
+          notify: true
+        },
+        lastCommit: {
+          type: Object
+        }
+      },
+      behaviors: [
+        Polymer.AppLocalizeBehavior,
+        GameBehaviors.FormatBehavior,
+        GameBehaviors.ToasterBehavior
+      ],
+      observers: [
+        '_makeSetupHidden(running, gameOver)'
+      ],
+
+      attached: function() {
+        this.loadResources(this.resolveUrl('../data/locales.json'));
+      },
+
+      _isOAuth: function(secret) {
+        return secret === this.oAuth;
+      },
+
+      _handleUserChanged: function(user) {
+        if (user && !user.isAnonymous && user.email) {
+          let alias = user.email.split('@')[0];
+          // since we're using this as firebase key, we need to make
+          // sure that we only use allowed characters.
+          const forbiddenChars = ['.', '#', '$', '[', ']'];
+          alias = alias.replace(/[\.#\$\,\[\] \- //]/ig, '');
+          this.alias = alias;
+        } else {
+          this.alias = 'anonymous';
+        }
+      },
+
+      _requestSignIn: function() {
+        this.fire('request-sign-in');
+      },
+
+      _startGame: function() {
+        this.$.logic.start();
+        this.$.flipClock._resetCount();
+        this.$.flipClock._startCount();
+
+        // to log the user's statistics, we request an anonymous sign in
+        // if they decide to log in later, they do not lose their
+        // game history from before.
+        if (!this.user) {
+          this.fire('request-anonymous-signin');
+        }
+      },
+      _handleRating: function(e) {
+        e.stopPropagation();
+
+        this.$.logic.rate(e.detail);
+        this.$.rating.reset();
+      },
+
+      _updateFeedbackHeading: function(customHeading) {
+        var percent = this.$.logic.score.percent;
+        var bestOptions = ['nice', 'tremendous', 'proud_of_you', 'you_must_like_passwords'];
+        var randomIndex;
+
+        if (customHeading && typeof customHeading === 'string') {
+          this.feedbackHeading = customHeading;
+          return;
+        }
+
+        if (percent < 30) {
+          this.feedbackHeading = this.localize('didnt_go_well') + '...';
+        } else if (percent < 50) {
+          this.feedbackHeading = this.localize('agree_to_disagree') + '.';
+        } else if (percent < 70) {
+          this.feedbackHeading = this.localize('could_be_worse') + '.';
+        } else if (percent < 80) {
+          this.feedbackHeading = this.localize('not_so_bad') + '!';
+        } else {
+          // get a random string from the bestOptions array.
+          randomIndex = Math.floor(Math.random() * bestOptions.length);
+          this.feedbackHeading = this.localize(bestOptions[randomIndex]) + '!';
+        }
+      },
+      _handleGameOver: function() {
+        this.$.flipClock._stopCount();
+        this._showToast(this.localize('game_over_toast'));
+        this._updateFeedbackHeading();
+        if (this.$.logic.isSane()) {
+          this.lastCommit = {
+            alias: this.alias,
+            achieved: this.$.logic.score.achieved,
+            total: this.$.logic.score.total,
+            percent: this.$.logic.score.percent,
+            timestamp: (new Date()).getTime(),
+            datetime: (new Date()).toISOString(),
+            pscore: this.$.logic.score.pscore,
+            rounds: this.$.logic.passwords,
+            x: this.$.logic.score.total / 100,
+          };
+          this.fire('commit', this.lastCommit);
+        } else {
+          this._updateFeedbackHeading('Did you cheat?');
+        }
+      },
+      /**
+       * EventListener for on-touch event on paper-button that is displayed after playing the game.
+       * @private
+       */
+      _fireLeaderboardRequest: function() {
+        if (typeof this.lastCommit !== 'undefined') {
+          this.lastCommit.alias = this.alias;
+          this.fire('save-to-leaderboard', this.lastCommit);
+        }
+      },
+      /**
+       * after the score was saved to the leaderboard, this method can be used to avoid duplicate entries.
+       */
+      resetLastCommit: function() {
+        this.lastCommit = undefined;
+      },
+      _canSave: function(alias, lastCommit) {
+        return (alias !== '' && lastCommit);
+      },
+      _byTimestamp: function(roundA, roundB) {
+        if (roundA && roundB && roundA.timestamp && roundB.timestamp) {
+          return roundB.timestamp - roundA.timestamp;
+        }
+        return 1;
+      },
+      _getRatingClass: function(tendency) {
+        return 'tendency-' + Math.abs(tendency);
+      },
+      _makeSetupHidden: function(running, gameOver) {
+        if (!this.setupHidden) {
+          this.setupHidden = running || gameOver;
+        }
+      }
+    });
+  </script>
+</dom-module>

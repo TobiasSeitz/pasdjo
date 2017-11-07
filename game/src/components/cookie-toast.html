@@ -1,0 +1,74 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../shared-styles.html">
+
+<dom-module id="cookie-toast">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      paper-toast .content{
+        @apply --layout-horizontal;
+        @apply --layout-center;
+      }
+      paper-toast div.left{
+        font-size: small;
+        @apply --layout-flex;
+      }
+      
+      paper-toast div.right{
+        @apply --layout-vertical;
+        justify-content: center;
+        padding-left: 8px;
+      }
+      paper-toast paper-button{
+        background-color:  var(--app-accent-color);
+      }
+      
+      paper-toast a:link, paper-toast a:visited {
+        color: var(--app-accent-color);
+      }
+    </style>
+    <paper-toast id="cookieToast" duration="0">
+      <paper-button raised id="acceptCookieConditionsButton" on-tap="_handleAcceptCookie">OK</paper-button>
+      <div class="left">We use cookies to collect anonymous statistics about the usage of this game.
+        If you keep using our site, you agree to our <a href="#/about">Data Usage Terms</a></div>
+    </paper-toast>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'cookie-toast',
+      properties: {
+        hasAccepted: {
+          type: Boolean,
+          notify: true
+        }
+      },
+      ready: function() {
+        var cookies = document.cookie.split(';');
+        for (var i=0;i<cookies.length;i++) {
+          var cookie = cookies[i];
+          if(cookie.indexOf('acceptedCookies')>-1){
+            this.hasAccepted = true;
+            break;
+          }
+        }
+        if(!this.hasAccepted){
+          this.$.cookieToast.open();
+        }
+      },
+      _handleAcceptCookie: function() {
+        this.$.cookieToast.close();
+        document.cookie = "acceptedCookies=;expires=Tue, 19 Jan 2020 10:00:00 UTC;";
+      },
+      accept: function() {
+        this._handleAcceptCookie()
+      }
+    });
+  })();
+  </script>
+</dom-module>

@@ -1,0 +1,242 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="count-down.html">
+<link rel="import" href="passwords-service.html">
+<link rel="import" href="polymer-zxcvbn.html">
+
+<dom-module id="game-logic">
+  <template>
+    <count-down duration="[[duration]]"
+                id="countDown"
+                on-time-out="_handleTimeout"></count-down>
+    <polymer-zxcvbn
+        password="[[currentPassword]]"
+        full-result="{{zxcvbnResult}}"></polymer-zxcvbn>
+    <passwords-service id="pwService"></passwords-service>
+
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'game-logic',
+        properties: {
+          running: {
+            type: Boolean,
+            value: false,
+            notify: true
+          },
+          /**
+           * indicates whether the game has ended at least once
+           */
+          gameOver: {
+            type: Boolean,
+            value: false,
+            notify: true
+          },
+          passwords: {
+            type: Array,
+            value: function() {
+              return [];
+            },
+            notify: true
+          },
+          currentPassword: {
+            type: String,
+            notify: true
+          },
+          /* the timer can be set from outside. */
+          duration: {
+            type: Number,
+            value: 60 * 1000
+          },
+          score: {
+            type: Object,
+            value: function() {
+              return {
+                total: 0,
+                achieved: 0,
+                percent: 0,
+                pscore: 0
+              }
+            },
+            notify: true
+          },
+          analysis: {},
+          zxcvbnResult: {
+            type: Object
+          }
+        },
+        observers: [
+          '_calculateScore(passwords.splices)'
+        ],
+        ready: function() {
+          this.config = {
+            maxRounds: 60, // game stops after 60 rounds
+            conditions: [
+              'common',
+              'mangled',
+              'passphrase',
+              'random',
+              'predictable'
+            ]
+          };
+          this.condition = 'common_passwords';
+        },
+        start: function() {
+          if (!this.running) {
+            this.rounds = 0; // how many rounds did the user play?
+            this.running = true;
+            this.gameOver = false;
+            this.set('passwords',[]);
+            this.set('score',{
+              total: 0,
+              achieved: 0,
+              percent: 0,
+              pscore: 0
+            });
+            this.$.countDown.start();
+            this.next();
+          }
+        },
+        next: function() {
+          var passphraseWordCount;
+          var self = this;
+          function getRandomCondition() {
+            return self.config.conditions[Math.floor(Math.random() * self.config.conditions.length)];
+          };
+          if (this.rounds < this.config.maxRounds) {
+            this.condition = getRandomCondition();
+            if (this.condition === 'common') {
+              this.currentPassword = this.$.pwService.common();
+            } else if (this.condition === 'mangled') {
+              this.currentPassword = this.$.pwService.mangled();
+            } else if (this.condition === 'predictable') {
+              this.currentPassword = this.$.pwService.predictable();
+            } else if (this.condition === 'passphrase') {
+              passphraseWordCount = Math.random() < 0.5 ? 2 : 3;
+              this.currentPassword = this.$.pwService.passphrase(passphraseWordCount);
+            } else { // default condition: random
+              this.currentPassword = this.$.pwService.random();
+            }
+            this.rounds++;
+          } else {
+            this.end();
+          }
+        },
+        rate: function(rating) {
+          // only commit the rating if the game is actually running.
+          if (this.running && typeof rating === 'number') {
+            this._commit(rating, this.zxcvbnResult);
+            this.next();
+          }
+        },
+        end: function() {
+          this.running = false;
+          this.gameOver = true;
+          this.$.countDown.stop();
+          this.fire('game-over', this.passwords);
+        },
+        isSane: function() {
+          var isSane = true;
+          var alarmedHeuristics = [];
+          var requiredNumberOfHeuristics = 2;
+          if (!this.passwords || this.passwords.length === 0) return false;
+          var heuristicExcess = 'numRounds', heuristicKey = 'singleKey', heuristicSpeed = 'speed';
+
+          // heuristics to tell if the game seems implausible:
+          // 1. The player only used one key.
+          // 2. the player was way to fast (i.e. used a script.)
+          
+          
+          var singleKeyHeuristic = function(passwords){
+            // create hashmap
+            var counts = {};
+            var singleKeyPercentageThreshold = 0.9;
+            passwords.forEach(function(round){
+              if ( typeof counts[round.user_rating] === 'undefined' ){
+                counts[round.user_rating] = 0;
+              }
+              counts[round.user_rating]++;
+            });  
+            for (var k in counts) {
+              // example: If the ratings consist of rating 3 more than 90% percent
+              //          of the game, we return true immediately.
+              if (counts[k] / passwords.length > singleKeyPercentageThreshold) {
+                return true;
+              }
+            }
+            return false;
+          };
+          
+          var tooFast = function(passwords) {
+            var firstTimestamp, lastTimestamp, delta, threshold = 15*1000; // 15 seconds in milliseconds
+            if (passwords && passwords.length > 1) {
+              firstTimestamp = passwords[0].timestamp;
+              lastTimestamp = passwords[passwords.length - 1].timestamp;
+              delta = lastTimestamp - firstTimestamp;
+              return delta < threshold;
+            }
+            return false;
+          }
+          
+          // only analyze single key heuristic, if the player got close to the maximum number of passwords.
+          if (this.passwords.length > (this.config.maxRounds * 0.9)) {
+            alarmedHeuristics.push(heuristicExcess);
+            if (singleKeyHeuristic(this.passwords)) {
+              alarmedHeuristics.push(heuristicKey);
+            }
+          }
+          
+          if (tooFast(this.passwords)) {
+            alarmedHeuristics.push(heuristicSpeed);
+          }  
+          isSane = alarmedHeuristics.indexOf(heuristicSpeed) === -1 && alarmedHeuristics.indexOf(heuristicKey) === -1;
+          return isSane;
+        },
+        _calculateScore: function() {
+          if (!this.passwords || this.passwords.length === 0) return;
+          var correctPoints = 100;
+          var errorPenalty = 25; // how much is deducted for a miss?
+          var total = 0, achieved = 0, percent;
+          this.passwords.forEach(function(round) {
+            total += correctPoints;
+            achieved += correctPoints - (Math.abs(round.tendency) * errorPenalty);
+          });
+          percent = total > 0 ? achieved / total : 0;
+          percent = Math.ceil(percent * 100);
+          this.score = {
+            total: total,
+            achieved: achieved,
+            percent: percent,
+            pscore: Math.ceil(achieved * (percent / 100)) // penalty
+          }
+        },
+        _handleTimeout: function(e) {
+          e.stopPropagation(); // why is this necessary?
+          this.end();
+        },
+        _commit: function(rating, analysis) {
+          if (rating === 0) return; // can happen if you smash keys too quickly
+          var analysisCopy = {
+            user_rating: rating
+          };
+          for (var key in analysis) {
+            if (analysis.hasOwnProperty(key)) {
+              analysisCopy[key] = analysis[key];
+            }
+          }
+          analysisCopy.score++; // 1-5 instead of 0-4;
+          analysisCopy.tendency = analysisCopy.user_rating - analysisCopy.score;
+          analysisCopy.condition = this.condition;
+          analysisCopy.timestamp = Date.now();
+          delete analysisCopy.feedback;
+          delete analysisCopy.sequence;
+          delete analysisCopy.calc_time;
+          delete analysisCopy.crack_times_display;
+          delete analysisCopy.crack_times_seconds;
+          this.push('passwords', analysisCopy);
+        }
+      });
+    })();
+  </script>
+</dom-module>

@@ -1,0 +1,273 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymerfire/firebase-query.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../shared-styles.html">
+<link rel="import" href="../behaviors/format-behavior.html">
+
+<link rel="import" href="../../bower_components/google-chart/google-chart.html">
+
+<dom-module id="highscore-view">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+      }
+
+      .row:not(:last-of-type) {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        margin: 16px 0;
+        border-bottom: 1px dashed #9e9e9e;
+        padding: 5px 0;: last-of-type
+      }
+
+      .row > * {
+        flex: 1;
+      }
+
+      .row .score {
+      }
+
+      .row .daterow {
+        color: #9e9e9e;
+      }
+
+      .row .prow {
+        font-size: 24px;
+        font-weight: bold;
+      }
+
+      paper-spinner[hidden] {
+        display: none;
+      }
+
+      .aggregation google-chart {
+        width: 100%;
+      }
+
+      .aggregation .stats {
+
+      }
+
+      .aggregation .stats > div {
+        display: inline-block;
+      }
+
+      .aggregation .stats > div:not(:last-of-type) {
+        margin: 0 5px 0 0;
+      }
+
+    </style>
+
+
+    <firebase-query
+        id="query"
+        app-name="password-game"
+        path="/games/[[ uid ]]"
+        data="{{games}}">
+    </firebase-query>
+
+    <div class="card">
+      <h2>[[ localize('highscores') ]]</h2>
+      <paper-spinner hidden$="[[ dataAvailable ]]"></paper-spinner>
+      <div class="aggregation" hidden$="[[ !dataAvailable ]]">
+        <template is="dom-if" if="[[!onlyOneGame]]">
+          <google-chart type="md-line"
+                        cols="[[ timelineChartCols ]]"
+                        rows="[[ timelineChartRows ]]"
+                        options="[[ timelineOptions ]]"
+          ></google-chart>
+        </template>
+        <div class="stats">
+          <div>[[ localize('games_played') ]]: <strong>[[ games.length ]]</strong> -</div>
+          <div>[[ localize('average_score') ]]: <strong>[[ descriptives.averageScore ]]</strong> -</div>
+          <div>[[ localize('average_accuracy') ]]: <strong>[[ descriptives.averagePercentage ]]</strong></div>
+        </div>
+
+      </div>
+      <div class="scores">
+        <template is="dom-repeat" items="[[games]]" as="game" initial-count="10" sort="_sortGamesByDate">
+          <div class="row">
+            <div class="prow">
+              <span class="pscore">[[game.pscore]] Points</span>
+            </div>
+            <div class="daterow">
+              <span>[[ localize('play_datetime') ]]:</span>
+              <span>[[_getDateTime(game)]]</span>
+            </div>
+            <div class="score">
+              <span>[[ localize('score') ]]: </span>
+              <span class="achieved">[[_getData(game, 'achieved')]]</span> /
+              <span class="total">[[_getData(game, 'total')]]</span>
+              (<span class="percent">[[_getData(game, 'percent')]]%</span>)
+            </div>
+          </div>
+        </template>
+      </div>
+      <a href="#/game">
+        <paper-button>Play now</paper-button>
+      </a>
+    </div>
+
+    <div class="footer">
+      <p class="confidential">[[ localize('confidential') ]]</p>
+    </div>
+
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'highscore-view',
+        behaviors: [
+          Polymer.AppLocalizeBehavior,
+          GameBehaviors.FormatBehavior
+        ],
+        properties: {
+          games: {
+            type: Array
+          },
+          language: {
+            type: String,
+            value: 'de'
+          },
+          uid: {
+            type: String,
+            value: ''
+          },
+          descriptives: {
+            type: Object,
+            value: function() {
+              return {
+                gamesPlayed: 0,
+                averageScore: 0,
+                averagePercentage: 0
+              }
+            }
+          },
+          dataAvailable: {
+            type: Boolean,
+            value: false
+          },
+          onlyOneGame: {
+            type: Boolean,
+            value: false
+          },
+          timelineChartCols: {
+            type: Array,
+            value: function() {
+              return [
+                {label: 'Game', type: 'string'},
+                {label: 'Score', type: 'number'},
+                {label: 'Accuracy', type: 'number'}
+              ]
+            }
+          },
+          timelineChartRows: {
+            type: Array
+          },
+          timelineOptions: {
+            type: Object,
+            value: function() {
+              return {
+                chart: {
+                  title: 'History'
+                },
+                series: {
+                  // Gives each series an axis name that matches the Y-axis below.
+                  0: {axis: 'Score'},
+                  1: {axis: 'Percent'}
+                },
+                axes: {
+                  // Adds labels to each axis; they don't have to match the axis names.
+                  y: {
+                    'Score': {label: 'Score'},
+                    'Percent': {label: 'Accuracy'}
+                  }
+                }
+              }
+            }
+          }
+        },
+
+        observers: [
+          '_gamesChanged(games.*)'
+        ],
+        // firebase generates string keys in alphabetic, ascending order
+        // that means, as of now, we can just reverse the order to have 
+        // the order by timestamp
+        _sortGamesByDate: function(gameA, gameB) {
+          return gameB.timestamp - gameA.timestamp;
+        },
+        _isHighScoresHidden: function(games) {
+          return !games || games.length === 0;
+        },
+        _highScoresAvailable: function(games) {
+          // this is a bit stupid, but computed bindings work that way.
+          return !this._isHighScoresHidden(games);
+        },
+        _gamesChanged: function(games) {
+
+          const timeoutDuration = 1000; // milliseconds
+
+          if (this.changeTimeout) {
+            window.clearTimeout(this.changeTimeout);
+          }
+          // we don't want to do costly map-reduce calculations when firebase is populating the array.
+          // therefore we wait timeoutDuration milliseconds until we run updates.
+          this.changeTimeout = window.setTimeout(function() {
+            // we get an object with all the change diff
+            // the new array is in games.base
+            this.set('descriptives', {
+              gamesPlayed: games.base.length,
+              averageScore: this._calcAverage(games.base, 'pscore'),
+              averagePercentage: this._calcAverage(games.base, 'percent'),
+            });
+
+            this.dataAvailable = games.base.length > 0;
+            this.onlyOneGame = games.base.length === 1;
+
+            this.timelineChartRows = games.base.map(function(game, index) {
+              return [(index + 1) + '.', game.pscore, game.percent];
+            });
+          }.bind(this), timeoutDuration);
+        },
+        _getData: function(game, metric) {
+          if ('score' in game && typeof game.score === 'object') {
+            return game.score[metric];
+          } else if (metric in game) {
+            return game[metric];
+          } else {
+            return 0;
+          }
+        },
+        _getDateTime: function(game) {
+          if ('timestamp' in game) return this._dateFromTimestamp(game.timestamp);
+          else if (game.rounds && game.rounds[0] && game.rounds[0].timestamp) {
+            return this._dateFromTimestamp(game.rounds[0].timestamp)
+          }
+        },
+        _calcAverage: function(gamesArray, metric) {
+          let values = [];
+          gamesArray.forEach(function(game) {
+            if (game.hasOwnProperty('pscore')) values.push(game[metric]);
+          });
+
+          let summed = values.length ? values.reduce(function(a, b) {
+            return a + b
+          }, 0) : 0;
+          return gamesArray && gamesArray.length ? (summed / gamesArray.length).toFixed(2) : 0;
+        },
+        attached: function() {
+          this.loadResources(this.resolveUrl('../data/locales.json'));
+        },
+
+      });
+    })();
+  </script>
+</dom-module>
