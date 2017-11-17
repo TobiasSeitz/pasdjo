@@ -8,7 +8,7 @@
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
 module.exports = {
-  version: 20,
+  version: 21,
   staticFileGlobs: [
     '/index.html',
     '/src/**/*',
@@ -40,6 +40,8 @@ module.exports = {
     '/bower_components/app-localize-behavior/app-localize-behavior.html',
     '/images/**/*.{png,jpg,gif}'
   ],
+  navigateFallback: 'index.html',
+  navigateFallbackWhitelist: [/^(?!\/__)/],
   runtimeCaching: [
     {
       urlPattern: /\/src\/(.*)/,
