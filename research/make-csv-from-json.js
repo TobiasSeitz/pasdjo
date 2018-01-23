@@ -13,7 +13,8 @@ function Analyzer() {
   const COMMON = 'common'
     , MANGLED = 'mangled'
     , PASSPHRASE = 'passphrase'
-    , RANDOM = 'random';
+    , RANDOM = 'random'
+    , PREDICTABLE = 'predictable';
 
   this.data = {};
 
@@ -48,74 +49,40 @@ function Analyzer() {
     //          score Obj (achieved, percent, total)
 
     var gameCSV = '', roundCSV = '';
-    gameCSV += [
-        'id'.inQuote(),
-        'user'.inQuote(),
-        'userID'.inQuote(),
-        'game'.inQuote(),
-        'gameIndex'.inQuote(),
-        'achieved'.inQuote(),
-        'total'.inQuote(),
-        'percent'.inQuote(),
+    var conditions = ['overall', COMMON, MANGLED, PASSPHRASE, RANDOM, PREDICTABLE];
+    var metricNames = ['Tendency', 'Ratings', 'Scores', 'GuessesLog10', 'Guesses'];
+    var gameColumns = ['id', 'user', 'userID', 'game', 'gameIndex', 'timestamp', 'isodate', 'achieved', 'total', 'percent', COMMON, MANGLED, PASSPHRASE, RANDOM, PREDICTABLE];
 
-        // lengths / number of items
-        COMMON.inQuote(),
-        MANGLED.inQuote(),
-        PASSPHRASE.inQuote(),
-        RANDOM.inQuote(),
+    conditions.forEach((condition) => {
+      metricNames.forEach((metric) => {
+        gameColumns.push(condition + metric);
+      })
+    });
 
-        // overall averages
-        'overallTendency'.inQuote(),
-        'overallRatings'.inQuote(),
-        'overallScores'.inQuote(),
-        'overallGuessesLog10'.inQuote(),
-        'overallGuesses'.inQuote(),
+    gameColumns.map((col) => {
+      return col.inQuote()
+    });
+    gameCSV += gameColumns.join(',') + '\n';
 
-        // common averages
-        'commonTendency'.inQuote(),
-        'commonRatings'.inQuote(),
-        'commonScores'.inQuote(),
-        'commonGuessesLog10'.inQuote(),
-        'commonGuesses'.inQuote(),
+    var roundColumns = [
+      'id',
+      'user',
+      'userID',
+      'game',
+      'gameIndex',
+      'condition',
+      'guesses',
+      'guessesLog10',
+      'password',
+      'score',
+      'userRating',
+      'tendency',
+      'timestamp'
+    ].map((col) => {
+      return col.inQuote()
+    });
 
-        // mangled averages
-        'mangledTendency'.inQuote(),
-        'mangledRatings'.inQuote(),
-        'mangledScores'.inQuote(),
-        'mangledGuessesLog10'.inQuote(),
-        'mangledGuesses'.inQuote(),
-
-        // passphrase averages
-        'passphraseTendency'.inQuote(),
-        'passphraseRatings'.inQuote(),
-        'passphraseScores'.inQuote(),
-        'passphraseGuessesLog10'.inQuote(),
-        'passphraseGuesses'.inQuote(),
-
-        // random averages
-        'randomTendency'.inQuote(),
-        'randomRatings'.inQuote(),
-        'randomScores'.inQuote(),
-        'randomGuessesLog10'.inQuote(),
-        'randomGuesses'.inQuote(),
-
-      ].join(',') + '\n';
-
-    roundCSV += [
-        'id'.inQuote(),
-        'user'.inQuote(),
-        'userID'.inQuote(),
-        'game'.inQuote(),
-        'gameIndex'.inQuote(),
-        'condition'.inQuote(),
-        'guesses'.inQuote(),
-        'guessesLog10'.inQuote(),
-        'password'.inQuote(),
-        'score'.inQuote(),
-        'userRating'.inQuote(),
-        'tendency'.inQuote(),
-        'timestamp'.inQuote()
-      ].join(',') + '\n';
+    roundCSV += roundColumns.join(',') + '\n';
 
 
     var gameRowID = 0;
@@ -130,10 +97,14 @@ function Analyzer() {
       for (var game in userObj) {
         userGames++;
         var gameObj = userObj[game];
-        var score = gameObj.score;
+        var score = gameObj.score || {
+          achieved: gameObj.achieved,
+          total: gameObj.total,
+          percent: gameObj.percent
+        }; // it was later renamed to achieved.
 
 
-        var duration = 0, startTimestamp, endTimestamp;
+        var duration = 0, startTimestamp = 0, endTimestamp = 0, endDate;
 
         if ('rounds' in gameObj) {
           gameObj.rounds.forEach(function(round) {
@@ -148,20 +119,22 @@ function Analyzer() {
             endTimestamp = Math.max(endTimestamp, round.timestamp);
 
             roundCSV += [
-                (pwRowID++).inQuote(),
-                user.inQuote(),
-                userID.inQuote(),
-                game.inQuote(),
-                userGames.inQuote(),
-                round.condition.inQuote(),
-                round.guesses.inQuote(),
-                round.guesses_log10.inQuote(),
-                round.password.inQuote(),
-                round.score.inQuote(),
-                round.user_rating.inQuote(),
-                round.tendency.inQuote(),
-                round.timestamp.inQuote()
-              ].join(',') + '\n';
+              (pwRowID++),
+              user,
+              userID,
+              game,
+              userGames,
+              round.condition,
+              round.guesses,
+              round.guesses_log10,
+              round.password,
+              round.score,
+              round.user_rating,
+              round.tendency,
+              round.timestamp
+            ].map((col) => {
+              return col.inQuote()
+            }).join(',') + '\n';
 
           });
 
@@ -177,108 +150,78 @@ function Analyzer() {
           var commonRounds = filterByCondition(gameObj, COMMON)
             , mangledRounds = filterByCondition(gameObj, MANGLED)
             , passphraseRounds = filterByCondition(gameObj, PASSPHRASE)
-            , randomRounds = filterByCondition(gameObj, RANDOM);
+            , randomRounds = filterByCondition(gameObj, RANDOM)
+            , predictableRounds = filterByCondition(gameObj, PREDICTABLE);
 
-
-          var averages = {
-            tendency: {
-              overall: Util.average(gameObj.rounds, 'tendency'),
-              common: Util.average(commonRounds, 'tendency'),
-              mangled: Util.average(mangledRounds, 'tendency'),
-              passphrase: Util.average(passphraseRounds, 'tendency'),
-              random: Util.average(randomRounds, 'tendency')
-            },
-            ratings: {
-              overall: Util.average(gameObj.rounds, 'user_rating'),
-              common: Util.average(commonRounds, 'user_rating'),
-              mangled: Util.average(mangledRounds, 'user_rating'),
-              passphrase: Util.average(passphraseRounds, 'user_rating'),
-              random: Util.average(randomRounds, 'user_rating')
-            },
-            scores: {
-              overall: Util.average(gameObj.rounds, 'score'),
-              common: Util.average(commonRounds, 'score'),
-              mangled: Util.average(mangledRounds, 'score'),
-              passphrase: Util.average(passphraseRounds, 'score'),
-              random: Util.average(randomRounds, 'score')
-            },
-            guessesLog10: {
-              overall: Util.average(gameObj.rounds, 'guesses_log10'),
-              common: Util.average(commonRounds, 'guesses_log10'),
-              mangled: Util.average(mangledRounds, 'guesses_log10'),
-              passphrase: Util.average(passphraseRounds, 'guesses_log10'),
-              random: Util.average(randomRounds, 'guesses_log10')
-            },
-            guesses: {
-              overall: Util.average(gameObj.rounds, 'guesses'),
-              common: Util.average(commonRounds, 'guesses'),
-              mangled: Util.average(mangledRounds, 'guesses'),
-              passphrase: Util.average(passphraseRounds, 'guesses'),
-              random: Util.average(randomRounds, 'guesses')
+          var metrics = [
+            {
+              'key': 'tendency',
+              'name': 'tendency'
+            }, {
+              'key': 'user_rating',
+              'name': 'ratings'
+            }, {
+              'key': 'score',
+              'name': 'scores'
+            }, {
+              'key': 'guesses_log10',
+              'name': 'guessesLog10'
+            }, {
+              'key': 'guesses',
+              'name': 'guesses'
             }
-          };
+
+          ];
+
+          var averages = {};
+
+          metrics.forEach((metric) => {
+            let key = metric.key;
+            averages[metric.name] = {
+              overall: Util.average(gameObj.rounds, key),
+              common: Util.average(commonRounds, key),
+              mangled: Util.average(mangledRounds, key),
+              passphrase: Util.average(passphraseRounds, key),
+              random: Util.average(randomRounds, key),
+              predictable: Util.average(predictableRounds, key)
+            }
+          });
         }
 
+        // we only want the ISO DATE not the time, therefore we split the string and drop the time
+        endDate = (new Date(endTimestamp)).toISOString().split('T')[0];
         duration = endTimestamp - startTimestamp;
 
         if (score && score.total !== 0) {
-
-          gameCSV += [
-              (gameRowID++).inQuote(),
-              user.inQuote(),
-              userID.inQuote(),
-              game.inQuote(),
-              userGames.inQuote(),
-              score.achieved.inQuote(),
-              score.total.inQuote(),
-              score.percent.inQuote(),
-
-              commonRounds.length.inQuote(),
-              mangledRounds.length.inQuote(),
-              passphraseRounds.length.inQuote(),
-              randomRounds.length.inQuote(),
-
-              // overall
-              averages.tendency.overall.inQuote(),
-              averages.ratings.overall.inQuote(),
-              averages.scores.overall.inQuote(),
-              averages.guessesLog10.overall.inQuote(),
-              averages.guesses.overall.inQuote(),
-
-              // common
-              averages.tendency.common.inQuote(),
-              averages.ratings.common.inQuote(),
-              averages.scores.common.inQuote(),
-              averages.guessesLog10.common.inQuote(),
-              averages.guesses.common.inQuote(),
-
-              // mangled
-              averages.tendency.mangled.inQuote(),
-              averages.ratings.mangled.inQuote(),
-              averages.scores.mangled.inQuote(),
-              averages.guessesLog10.mangled.inQuote(),
-              averages.guesses.mangled.inQuote(),
-
-              // passphrases
-              averages.tendency.passphrase.inQuote(),
-              averages.ratings.passphrase.inQuote(),
-              averages.scores.passphrase.inQuote(),
-              averages.guessesLog10.passphrase.inQuote(),
-              averages.guesses.passphrase.inQuote(),
-
-              // random
-              averages.tendency.random.inQuote(),
-              averages.ratings.random.inQuote(),
-              averages.scores.random.inQuote(),
-              averages.guessesLog10.random.inQuote(),
-              averages.guesses.random.inQuote()
-
-            ].join(',') + '\n';
+          var conditionMetrics = ['overall', COMMON, MANGLED, PASSPHRASE, RANDOM, PREDICTABLE];
+          var gameDataRows = [
+            (gameRowID++),
+            user,
+            userID,
+            game,
+            userGames,
+            endTimestamp,
+            endDate,
+            score.achieved,
+            score.total,
+            score.percent,
+            commonRounds.length,
+            mangledRounds.length,
+            passphraseRounds.length,
+            randomRounds.length,
+            predictableRounds.length
+          ];
+          conditionMetrics.forEach((cMetric) => {
+            metrics.forEach((metric) => {
+              gameDataRows.push(averages[metric.name][cMetric]);
+            })
+          });
+          gameCSV += gameDataRows.map((col) => {
+            return col.inQuote()
+          }).join(',') + '\n';
         }
-
       }
     }
-
 
     return ({
       games: gameCSV,
@@ -287,10 +230,11 @@ function Analyzer() {
 
   }
 
-  function loadData(callback) {
+  function loadData(callback, path) {
     var self = this;
     const rootKey = 'games';
-    var data = require('./data/password-game-export.json')[rootKey];
+    console.log('using data at ' + path);
+    var data = require(path || './data/password-game-export.json')[rootKey];
 
 
     function removeKnownTestIDs(data) {
@@ -299,7 +243,8 @@ function Analyzer() {
         'uUcpou1wUBS5E9DVd556oO3dvAT2',
         'n68UIcbuD7amarUJYa73urhEmoL2',
         'jdPKqRRyulcUYgqO3lsM4cR7q6G2',
-        'KJQBBl9Hy1aD845drE6r9EFoUFX2'
+        'KJQBBl9Hy1aD845drE6r9EFoUFX2',
+        'oMFBBJfoX2d6oLiLOdM7t9oDOgi2'
       ];
       knownTestIDs.forEach(function(uid) {
         delete data[uid];
@@ -318,16 +263,21 @@ function Analyzer() {
     fs.writeFileSync(path.join(__dirname, 'data', 'games.csv'), data.games);
   }
 
-  this.analyze = function() {
+  this.analyze = function(path) {
     console.log('PASDJO starting analysis');
-    loadData(function(users) {
+    var callback = function(users) {
       var csvs = toCSV(users);
       createCSVFiles(csvs);
       console.log('PASDJO data created');
-    });
+    };
+    loadData(callback, path);
   }
 
 }
 
+var args = process.argv;
+var pathToData = args.length > 2 ? path.join(__dirname, args[2]) : null;
+
 var analyzer = new Analyzer();
-analyzer.analyze();
+
+analyzer.analyze(pathToData);
